@@ -10,7 +10,7 @@ const CSR_SCHEMA =  {'sld':'urn:dvb:metadata:servicelistdiscovery:2019'};
 
 
 function logRequest(req,valid) {
-	//
+	console.log(req.ip,'\t',req.method,'\t',req.originalUrl);
 	
 }
 
