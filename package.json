@@ -1,6 +1,6 @@
 {
-	"name": "DVB CSR",
-	"description": "DCV CSR responder",
+	"name": "DVB-CSR",
+	"description": "DVB CSR responder",
 	"version": "0.0.1",
 	"private": true,
 	"dependencies": {

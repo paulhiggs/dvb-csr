@@ -5,7 +5,7 @@ var fs = require("fs"), path=require("path");
 var masterCSR, library;
 
 const SERVICE_PORT = 3000;
-const MASTER_CSR_FILE = "csr\\csr-master.xml";
+const MASTER_CSR_FILE = "csr-master.xml";
 const CSR_SCHEMA =  {'sld':'urn:dvb:metadata:servicelistdiscovery:2019'};
 
 
