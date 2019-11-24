@@ -27,21 +27,26 @@ const allowed_arguments = ['ProviderName', 'RegulatorListFlag', 'Language', 'Tar
 morgan.token('protocol', function getProtocol(req) {
 	return req.protocol
 });
+morgan.token('parseErr',function getParseErr(req) {
+	if (req.parseErr) return "("+req.parseErr+")";
+	return "";
+});
 
-app.use(morgan(':remote-addr :protocol :method :url :status :res[content-length] - :response-time ms'));
+app.use(morgan(':remote-addr :protocol :method :url :status :res[content-length] - :response-time ms :parseErr'));
 
 
-function isIn(arg, value){
-	if (typeof(arg) == "string")
-		return arg==value;
+function isIn(args, value){
+	if (typeof(args) == "string")
+		return args==value;
 	
-	if (typeof(arg) == "object") {
-		for (var x=0; x<arg.length; x++) 
-			if (arg[x]==value)
+	if (typeof(args) == "object") {
+		for (var x=0; x<args.length; x++) 
+			if (args[x] == value)
 				return true;
 	}
 	return false;
 }
+
 
 app.get('/query', function(req,res){
 	if (checkQuery(req)) {
@@ -123,11 +128,11 @@ app.get('/query', function(req,res){
 					// remove remaining services that do not match the specified genre
 					if (!removeService && req.query.Genre) {
 						var g=1, keepService=false;
-						var genre= prov.get('//sld:ProviderOffering['+p+']'+'/sld:ServiceListOffering['+s+']'+'/sld:Genre['+c+']', CSR_SCHEMA);
+						var genre= prov.get('//sld:ProviderOffering['+p+']'+'/sld:ServiceListOffering['+s+']'+'/sld:Genre['+g+']', CSR_SCHEMA);
 						while (!keepService && genre) {			
 							if (isIn(req.query.Genre, genre.text())) keepService=true;
 							g++;
-							genre= prov.get('//sld:ProviderOffering['+p+']'+'/sld:ServiceListOffering['+s+']'+'/sld:Genre['+c+']', CSR_SCHEMA);
+							genre= prov.get('//sld:ProviderOffering['+p+']'+'/sld:ServiceListOffering['+s+']'+'/sld:Genre['+g+']', CSR_SCHEMA);
 						}
 						if (!keepService) removeService=true;
 					}
@@ -141,15 +146,15 @@ app.get('/query', function(req,res){
 				p++;
 				prov=doc.get('//sld:ProviderOffering['+p+']', CSR_SCHEMA);
 			}
-			
 			servicesToRemove.forEach(service => service.remove());
 		}
 			
 		// remove any <ProviderOffering> that no longer hhave any <ServiceListOffering>
-		var i, p=1, providersToRemove=[];
+		var p=1, providersToRemove=[];
 		var prov=doc.get('//sld:ProviderOffering['+p+']', CSR_SCHEMA);
 		while (prov) {
-			if (!doc.get('//sld:ProviderOffering['+p+']'+'/sld:ServiceListOffering[1]', CSR_SCHEMA)) providersToRemove.push(prov);
+			if (!doc.get('//sld:ProviderOffering['+p+']'+'/sld:ServiceListOffering[1]', CSR_SCHEMA)) 
+				providersToRemove.push(prov);
 			p++;
 			prov=doc.get('//sld:ProviderOffering['+p+']', CSR_SCHEMA);
 		}
@@ -175,7 +180,6 @@ function isTVAAudioLanguageType(languageCode) {
 
 function isISO3166code(countryCode) {
 	if (countryCode.length!=3) {
-		console.log("incorrect length for country ("+countryCode+")");
 		return false;
 	}
 	return true;
@@ -196,19 +200,20 @@ function checkQuery(req) {
 		
 		// check for any erronous arguments
 		for (key in req.query) {
-			if (!isIn(allowed_arguments, key))
+			if (!isIn(allowed_arguments, key)) {
+				req.parseErr = "invalid argument [" + key +"]";
 				return false;
+			}
 		}
-	
 		
 		//RegulatorListFlag needs to be a boolean, "true" or "false" only
 		if (req.query.RegulatorListFlag) {
 			if (typeof(req.query.RegulatorListFlag) != "string" ) {
-				console.log("invalid type for RegulatorListFlag " + typeof(req.query.RegulatorListFlag));
+				req.parseErr = "invalid type for RegulatorListFlag " + typeof(req.query.RegulatorListFlag) +"]";
 				return false;
 			}
 			if (req.query.RegulatorListFlag != "true" && req.query.RegulatorListFlag != "false") {
-				console.log("invalid value for RegulatorListFlag " + req.query.RegulatorListFlag);
+				req.parseErr = "invalid value for RegulatorListFlag [" + req.query.RegulatorListFlag + "]";
 				return false;				
 			}
 		}
@@ -217,6 +222,7 @@ function checkQuery(req) {
 		if (req.query.TargetCountry) {
 			if (typeof(req.query.TargetCountry)=="string"){
 				if (!isISO3166code(req.query.TargetCountry)) {
+					req.parseErr = "incorrect length for country ["+req.query.TargetCountry + "]";
 					return false;
 				}					
 			}	
@@ -224,6 +230,7 @@ function checkQuery(req) {
 				var i;
 				for (i=0; i<req.query.TargetCountry.length; i++ ) {
 					if (!isISO3166code(req.query.TargetCountry[i])) {
+						req.parseErr = "incorrect length for country ["+req.query.TargetCountry[i]+ "]";
 						return false;
 					}
 				}
@@ -283,7 +290,6 @@ function checkQuery(req) {
 	return true;
 }
 
-
 app.get('/reload', function(req,res){
 	fs.readFile(MASTER_CSR_FILE, {encoding: 'utf-8'}, function(err,data){
 		if (!err) {
@@ -299,6 +305,9 @@ app.get('*', function(req,res) {
 	res.status(404).end();
 });
 
+
+// start the HTTP server
+
 var http_server = app.listen(HTTP_SERVICE_PORT, function() {
 	fs.readFile(MASTER_CSR_FILE, {encoding: 'utf-8'}, function(err,data){
 		if (!err) {
@@ -311,12 +320,14 @@ var http_server = app.listen(HTTP_SERVICE_PORT, function() {
 });
 
 
+// start the HTTPS server
+
 function readmyfile(filename) {
 	try {
 		var stats=fs.statSync(filename);
 		if (stats.isFile()) return fs.readFileSync(filename); 
 	}
-	catch {}
+	catch (err) {console.log(err);}
 	return null;
 }
 
