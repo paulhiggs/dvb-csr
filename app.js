@@ -1,6 +1,14 @@
+// node.js - https://nodejs.org/en/
+// express framework - https://expressjs.com/en/4x/api.html
 var express = require('express');
 var app = express();
+
+// morgan - https://github.com/expressjs/morgan
+var morgan = require('morgan')
+
+// libxmljs - https://github.com/libxmljs/libxmljs
 var libxml = require("libxmljs");
+
 var fs = require("fs"), path=require("path");
 var masterCSR, library;
 
@@ -8,11 +16,8 @@ const SERVICE_PORT = 3000;
 const MASTER_CSR_FILE = "csr-master.xml";
 const CSR_SCHEMA =  {'sld':'urn:dvb:metadata:servicelistdiscovery:2019'};
 
+app.use(morgan(':remote-addr :method :url :status :res[content-length] - :response-time ms'));
 
-function logRequest(req,valid) {
-	console.log(req.ip,'\t',req.method,'\t',req.originalUrl);
-	
-}
 
 function isIn(arg, value){
 	if (typeof(arg) == "string")
@@ -27,10 +32,7 @@ function isIn(arg, value){
 }
 
 app.get('/query', function(req,res){
-
-	var validQuery=checkQuery(req);
-	logRequest(req,validQuery);
-	if (validQuery==true) {
+	if (checkQuery(req)) {
 		var doc = libxml.parseXmlString(masterCSR);
 
 		if (req.query.ProviderName) {
@@ -154,7 +156,6 @@ function isTVAAudioLanguageType(languageCode) {
 	// TV Anytime language is an XML language with some additional addtributes
 	// http://www.datypic.com/sc/xsd/t-xsd_language.html
 	// any validation should occur through instance document validation. no range chech is necessary
-	
 	return true;
 }
 
@@ -261,8 +262,8 @@ function checkQuery(req) {
 	return true;
 }
 
+
 app.get('/reload', function(req,res){
-	logRequest(req);
 	fs.readFile(MASTER_CSR_FILE, {encoding: 'utf-8'}, function(err,data){
 		if (!err) {
 			masterCSR = data.replace(/(\r\n|\n|\r|\t)/gm,"");
@@ -274,12 +275,10 @@ app.get('/reload', function(req,res){
 });
 
 app.get('*', function(req,res) {
-	logRequest(req);
 	res.status(404).end();
 });
 
 var server = app.listen(SERVICE_PORT, function() {
-	
 	fs.readFile(MASTER_CSR_FILE, {encoding: 'utf-8'}, function(err,data){
 		if (!err) {
 			masterCSR = data.replace(/(\r\n|\n|\r|\t)/gm,"");

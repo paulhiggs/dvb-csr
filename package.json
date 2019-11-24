@@ -5,6 +5,7 @@
 	"private": true,
 	"dependencies": {
 		"express": "4.x",
-		"libxmljs": "^0.19.7"
+		"libxmljs": "^0.19.7",
+		"morgan": "^1.9.1"
 	}
 }
