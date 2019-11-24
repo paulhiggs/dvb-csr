@@ -9,14 +9,24 @@ var morgan = require('morgan')
 // libxmljs - https://github.com/libxmljs/libxmljs
 var libxml = require("libxmljs");
 
-var fs = require("fs"), path=require("path");
+var fs=require("fs"), path=require("path");
 var masterCSR, library;
+
+// sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout ./selfsigned.key -out selfsigned.crt
+const https=require('https');
+const keyFile=path.join('.','selfsigned.key'), certFile=path.join('.','selfsigned.crt');
 
 const SERVICE_PORT = 3000;
 const MASTER_CSR_FILE = "csr-master.xml";
 const CSR_SCHEMA =  {'sld':'urn:dvb:metadata:servicelistdiscovery:2019'};
 
-app.use(morgan(':remote-addr :method :url :status :res[content-length] - :response-time ms'));
+const allowed_arguments = ['ProviderName', 'RegulatorListFlag', 'Language', 'TargetCountry', 'Genre'];
+
+morgan.token('protocol', function getProtocol(req) {
+	return req.protocol
+});
+
+app.use(morgan(':remote-addr :protocol :method :url :status :res[content-length] - :response-time ms'));
 
 
 function isIn(arg, value){
@@ -146,6 +156,8 @@ app.get('/query', function(req,res){
 		res.type('text/xml');
 		res.send(doc.toString());
 	}
+	else
+		res.status(400);
 	res.end();
 });
 
@@ -161,7 +173,7 @@ function isTVAAudioLanguageType(languageCode) {
 
 function isISO3166code(countryCode) {
 	if (countryCode.length!=3) {
-		console.dir("incorrect length for country ("+countryCode+")");
+		console.log("incorrect length for country ("+countryCode+")");
 		return false;
 	}
 	return true;
@@ -180,14 +192,21 @@ function isProvider(provider) {
 function checkQuery(req) {
 	if (req.query) {
 		
+		// check for any erronous arguments
+		for (key in req.query) {
+			if (!isIn(allowed_arguments, key))
+				return false;
+		}
+	
+		
 		//RegulatorListFlag needs to be a boolean, "true" or "false" only
 		if (req.query.RegulatorListFlag) {
 			if (typeof(req.query.RegulatorListFlag) != "string" ) {
-				console.dir("invalid type for RegulatorListFlag " + typeof(req.query.RegulatorListFlag));
+				console.log("invalid type for RegulatorListFlag " + typeof(req.query.RegulatorListFlag));
 				return false;
 			}
 			if (req.query.RegulatorListFlag != "true" && req.query.RegulatorListFlag != "false") {
-				console.dir("invalid value for RegulatorListFlag " + req.query.RegulatorListFlag);
+				console.log("invalid value for RegulatorListFlag " + req.query.RegulatorListFlag);
 				return false;				
 			}
 		}
@@ -278,7 +297,7 @@ app.get('*', function(req,res) {
 	res.status(404).end();
 });
 
-var server = app.listen(SERVICE_PORT, function() {
+var http_server = app.listen(SERVICE_PORT, function() {
 	fs.readFile(MASTER_CSR_FILE, {encoding: 'utf-8'}, function(err,data){
 		if (!err) {
 			masterCSR = data.replace(/(\r\n|\n|\r|\t)/gm,"");
@@ -286,5 +305,27 @@ var server = app.listen(SERVICE_PORT, function() {
 			console.log(err);
 		}
 	});
-	console.log("listening on port number %d",server.address().port);
+	console.log("HTTP listening on port number %d",http_server.address().port);
 });
+
+
+function readmyfile(filename) {
+	try {
+		var stats=fs.statSync(filename);
+		if (stats.isFile()) return fs.readFileSync(filename); 
+	}
+	catch {}
+	return null;
+}
+
+var https_options = {
+	key:readmyfile(path.join('.','selfsigned.key')),
+	cert:readmyfile(path.join('.','selfsigned.crt'))
+};
+
+if (https_options.key && https_options.cert) {
+	var https_server = https.createServer(https_options, app);
+	https_server.listen(SERVICE_PORT+1, function(){
+		console.log("HTTPS listening on port number %d",https_server.address().port);
+	});
+}
