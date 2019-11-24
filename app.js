@@ -16,7 +16,9 @@ var masterCSR, library;
 const https=require('https');
 const keyFile=path.join('.','selfsigned.key'), certFile=path.join('.','selfsigned.crt');
 
-const SERVICE_PORT = 3000;
+const HTTP_SERVICE_PORT = 3000;
+const HTTPS_SERVICE_PORT=HTTP_SERVICE_PORT+1;
+
 const MASTER_CSR_FILE = "csr-master.xml";
 const CSR_SCHEMA =  {'sld':'urn:dvb:metadata:servicelistdiscovery:2019'};
 
@@ -297,7 +299,7 @@ app.get('*', function(req,res) {
 	res.status(404).end();
 });
 
-var http_server = app.listen(SERVICE_PORT, function() {
+var http_server = app.listen(HTTP_SERVICE_PORT, function() {
 	fs.readFile(MASTER_CSR_FILE, {encoding: 'utf-8'}, function(err,data){
 		if (!err) {
 			masterCSR = data.replace(/(\r\n|\n|\r|\t)/gm,"");
@@ -325,7 +327,7 @@ var https_options = {
 
 if (https_options.key && https_options.cert) {
 	var https_server = https.createServer(https_options, app);
-	https_server.listen(SERVICE_PORT+1, function(){
+	https_server.listen(HTTPS_SERVICE_PORT, function(){
 		console.log("HTTPS listening on port number %d",https_server.address().port);
 	});
 }
