@@ -22,7 +22,7 @@ const HTTPS_SERVICE_PORT=HTTP_SERVICE_PORT+1;
 const MASTER_CSR_FILE = "csr-master.xml";
 const CSR_SCHEMA =  {'sld':'urn:dvb:metadata:servicelistdiscovery:2019'};
 
-const allowed_arguments = ['ProviderName', 'RegulatorListFlag', 'Language', 'TargetCountry', 'Genre'];
+const allowed_arguments = ['ProviderName', 'regulatorListFlag', 'Language', 'TargetCountry', 'Genre'];
 
 morgan.token('protocol', function getProtocol(req) {
 	return req.protocol;
@@ -78,7 +78,7 @@ app.get('/query', function(req,res){
 			providerCleanup.forEach(provider => provider.remove());
 		}
 
-		if (req.query.RegulatorListFlag || req.query.Language || req.query.TargetCountry || req.query.Genre) {
+		if (req.query.regulatorListFlag || req.query.Language || req.query.TargetCountry || req.query.Genre) {
 			var p=1, s=1, servicesToRemove=[];
 			var prov=doc.get('//sld:ProviderOffering['+p+']', CSR_SCHEMA);			
 			while (prov) {
@@ -88,11 +88,11 @@ app.get('/query', function(req,res){
 					var removeService=false;
 				
 					// remove services that do not match the specified regulator list flag
-					if (req.query.RegulatorListFlag) {
-						// The RegulatorListFlag has been specified in the query, so it has to match. Default in instance document is "false"
+					if (req.query.regulatorListFlag) {
+						// The regulatorListFlag has been specified in the query, so it has to match. Default in instance document is "false"
 						var flag=serv.attr("regulatorListFlag");
 						if (flag) flag=flag.value(); else flag="false";
-						if (req.query.RegulatorListFlag != flag) {
+						if (req.query.regulatorListFlag != flag) {
 							// remove this service entry
 							removeService=true;
 						}
@@ -169,7 +169,7 @@ app.get('/query', function(req,res){
 function isTVAAudioLanguageType(languageCode) {
 	// TV Anytime language is an XML language with some additional addtributes
 	// http://www.datypic.com/sc/xsd/t-xsd_language.html
-	// any validation should occur through instance document validation. no range chech is necessary
+	// any validation should occur through instance document validation. no range check is necessary
 	return true;
 }
 
@@ -201,14 +201,14 @@ function checkQuery(req) {
 			}
 		}
 		
-		//RegulatorListFlag needs to be a boolean, "true" or "false" only
-		if (req.query.RegulatorListFlag) {
-			if (typeof(req.query.RegulatorListFlag) != "string" ) {
-				req.parseErr = "invalid type for RegulatorListFlag ["+typeof(req.query.RegulatorListFlag)+"]";
+		//regulatorListFlag needs to be a boolean, "true" or "false" only
+		if (req.query.regulatorListFlag) {
+			if (typeof(req.query.regulatorListFlag) != "string" ) {
+				req.parseErr = "invalid type for regulatorListFlag ["+typeof(req.query.regulatorListFlag)+"]";
 				return false;
 			}
-			if (req.query.RegulatorListFlag != "true" && req.query.RegulatorListFlag != "false") {
-				req.parseErr = "invalid value for RegulatorListFlag ["+req.query.RegulatorListFlag+"]";
+			if (req.query.regulatorListFlag != "true" && req.query.regulatorListFlag != "false") {
+				req.parseErr = "invalid value for regulatorListFlag ["+req.query.regulatorListFlag+"]";
 				return false;				
 			}
 		}
