@@ -1,18 +1,16 @@
 // node.js - https://nodejs.org/en/
 // express framework - https://expressjs.com/en/4x/api.html
-var express = require('express');
+const express = require('express');
 var app = express();
 
 // morgan - https://github.com/expressjs/morgan
-var morgan = require('morgan')
+const morgan = require('morgan')
 
 // libxmljs - https://github.com/libxmljs/libxmljs
-var libxml = require("libxmljs");
+const libxml = require("libxmljs");
 
-var fs=require("fs"), path=require("path");
-var masterCSR, library;
+const fs=require("fs"), path=require("path");
 
-// sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout ./selfsigned.key -out selfsigned.crt
 const https=require('https');
 const keyFile=path.join('.','selfsigned.key'), certFile=path.join('.','selfsigned.crt');
 
@@ -24,6 +22,9 @@ const CSR_SCHEMA =  {'sld':'urn:dvb:metadata:servicelistdiscovery:2019'};
 
 const allowed_arguments = ['ProviderName', 'regulatorListFlag', 'Language', 'TargetCountry', 'Genre'];
 
+var masterCSR;
+
+
 morgan.token('protocol', function getProtocol(req) {
 	return req.protocol;
 });
@@ -31,8 +32,11 @@ morgan.token('parseErr',function getParseErr(req) {
 	if (req.parseErr) return "("+req.parseErr+")";
 	return "";
 });
+morgan.token('agent',function getAgent(req) {
+	return "("+req.headers['user-agent']+")";
+});
 
-app.use(morgan(':remote-addr :protocol :method :url :status :res[content-length] - :response-time ms :parseErr'));
+app.use(morgan(':remote-addr :protocol :method :url :status :res[content-length] - :response-time ms :agent :parseErr'));
 
 
 function isIn(args, value){
@@ -79,7 +83,7 @@ app.get('/query', function(req,res){
 		}
 
 		if (req.query.regulatorListFlag || req.query.Language || req.query.TargetCountry || req.query.Genre) {
-			var p=1, s=1, servicesToRemove=[];
+			var p=1, servicesToRemove=[];
 			var prov=doc.get('//sld:ProviderOffering['+p+']', CSR_SCHEMA);			
 			while (prov) {
 				var s=1;
@@ -167,7 +171,7 @@ app.get('/query', function(req,res){
 
 
 function isTVAAudioLanguageType(languageCode) {
-	// TV Anytime language is an XML language with some additional addtributes
+	// TV Anytime language is an XML datatype with some additional attributes
 	// http://www.datypic.com/sc/xsd/t-xsd_language.html
 	// any validation should occur through instance document validation. no range check is necessary
 	return true;
@@ -222,8 +226,7 @@ function checkQuery(req) {
 				}					
 			}	
 			else if (typeof(req.query.TargetCountry)=="object") {
-				var i;
-				for (i=0; i<req.query.TargetCountry.length; i++ ) {
+				for (var i=0; i<req.query.TargetCountry.length; i++ ) {
 					if (!isISO3166code(req.query.TargetCountry[i])) {
 						req.parseErr = "incorrect length for country ["+req.query.TargetCountry[i]+"]";
 						return false;
@@ -240,8 +243,7 @@ function checkQuery(req) {
 				}					
 			}	
 			else if (typeof(req.query.Language)=="object") {
-				var i;
-				for (i=0; i<req.query.Language.length; i++ ) {
+				for (var i=0; i<req.query.Language.length; i++ ) {
 					if (!isTVAAudioLanguageType(req.query.Language[i])) {
 						return false;
 					}
@@ -256,8 +258,7 @@ function checkQuery(req) {
 				}					
 			}	
 			else if (typeof(req.query.Genre)=="object") {
-				var i;
-				for (i=0; i<req.query.Genre.length; i++ ) {
+				for (var i=0; i<req.query.Genre.length; i++ ) {
 					if (!isGenre(req.query.Genre[i])) {
 						return false;
 					}
@@ -272,8 +273,7 @@ function checkQuery(req) {
 				}					
 			}	
 			else if (typeof(req.query.ProviderName)=="object") {
-				var i;
-				for (i=0; i<req.query.ProviderName.length; i++ ) {
+				for (var i=0; i<req.query.ProviderName.length; i++ ) {
 					if (!isProvider(req.query.ProviderName[i])) {
 						return false;
 					}
@@ -315,6 +315,7 @@ var http_server = app.listen(HTTP_SERVICE_PORT, function() {
 
 
 // start the HTTPS server
+// sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout ./selfsigned.key -out selfsigned.crt
 
 function readmyfile(filename) {
 	try {
@@ -326,8 +327,8 @@ function readmyfile(filename) {
 }
 
 var https_options = {
-	key:readmyfile(path.join('.','selfsigned.key')),
-	cert:readmyfile(path.join('.','selfsigned.crt'))
+	key:readmyfile(keyFile),
+	cert:readmyfile(certFile)
 };
 
 if (https_options.key && https_options.cert) {
