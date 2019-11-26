@@ -12,7 +12,7 @@ const libxml = require("libxmljs");
 const fs=require("fs"), path=require("path");
 
 const https=require('https');
-const keyFile=path.join('.','selfsigned.key'), certFile=path.join('.','selfsigned.crt');
+const keyFilename=path.join('.','selfsigned.key'), certFilename=path.join('.','selfsigned.crt');
 
 const HTTP_SERVICE_PORT = 3000;
 const HTTPS_SERVICE_PORT=HTTP_SERVICE_PORT+1;
@@ -61,34 +61,28 @@ app.get('/query', function(req,res){
 
 		if (req.query.ProviderName) {
 			// if ProviderName is specified, remove any ProviderOffering entries that do not match the name
-			var p=1, providerCleanup = [];
-			var prov=doc.get('//sld:ProviderOffering['+p+']', CSR_SCHEMA);
-			while (prov) {
-				var n=1, matchedProvider=false;
-				var provName=prov.get('//sld:ProviderOffering['+p+']/sld:Provider/sld:Name['+n+']', CSR_SCHEMA);
-				while (provName && !matchedProvider) {
+			var prov, p=1, providerCleanup = [];
+			while (prov=doc.get('//sld:ProviderOffering['+p+']', CSR_SCHEMA)) {
+				var provName, n=1, matchedProvider=false;
+				while ((provName=prov.get('//sld:ProviderOffering['+p+']/sld:Provider/sld:Name['+n+']', CSR_SCHEMA)) && !matchedProvider) {
 					if (isIn(req.query.ProviderName, provName.text())) {
 						matchedProvider=true;
 					}						
 					n++;
-					provName=prov.get('//sld:ProviderOffering['+p+']/sld:Provider/sld:Name['+n+']', CSR_SCHEMA);
 				}
 				if (!matchedProvider) {
 					providerCleanup.push(prov);
 				}
 				p++;
-				prov=doc.get('//sld:ProviderOffering['+p+']', CSR_SCHEMA);	
 			}
 			providerCleanup.forEach(provider => provider.remove());
 		}
 
 		if (req.query.regulatorListFlag || req.query.Language || req.query.TargetCountry || req.query.Genre) {
-			var p=1, servicesToRemove=[];
-			var prov=doc.get('//sld:ProviderOffering['+p+']', CSR_SCHEMA);			
-			while (prov) {
-				var s=1;
-				var serv=prov.get('//sld:ProviderOffering['+p+']'+'/sld:ServiceListOffering['+s+']', CSR_SCHEMA);
-				while (serv) {
+			var prov, p=1, servicesToRemove=[];
+			while (prov=doc.get('//sld:ProviderOffering['+p+']', CSR_SCHEMA)) {
+				var serv, s=1;
+				while (serv=prov.get('//sld:ProviderOffering['+p+']'+'/sld:ServiceListOffering['+s+']', CSR_SCHEMA)) {
 					var removeService=false;
 				
 					// remove services that do not match the specified regulator list flag
@@ -104,36 +98,30 @@ app.get('/query', function(req,res){
 
 					// remove remaining services that do not match the specified language
 					if (!removeService && req.query.Language) {
-						var l=1, keepService=false;
-						var lang=prov.get('//sld:ProviderOffering['+p+']'+'/sld:ServiceListOffering['+s+']'+'/sld:Language['+l+']', CSR_SCHEMA);
-						while (!keepService && lang) {
+						var lang, l=1, keepService=false;
+						while (!keepService && (lang=prov.get('//sld:ProviderOffering['+p+']'+'/sld:ServiceListOffering['+s+']'+'/sld:Language['+l+']', CSR_SCHEMA))) {
 							if (isIn(req.query.Language, lang.text())) keepService=true;
 							l++;
-							lang=prov.get('//sld:ProviderOffering['+p+']'+'/sld:ServiceListOffering['+s+']'+'/sld:Language['+l+']', CSR_SCHEMA);
 						}
 						if (!keepService) removeService=true;
 					}
 					
 					// remove remaining services that do not match the specified target country
 					if (!removeService && req.query.TargetCountry) {
-						var c=1, keepService=false;
-						var country=prov.get('//sld:ProviderOffering['+p+']'+'/sld:ServiceListOffering['+s+']'+'/sld:TargetCountry['+c+']', CSR_SCHEMA);
-						while (!keepService && country) {	
+						var country, c=1, keepService=false;
+						while (!keepService && (country=prov.get('//sld:ProviderOffering['+p+']'+'/sld:ServiceListOffering['+s+']'+'/sld:TargetCountry['+c+']', CSR_SCHEMA))) {	
 							if (isIn(req.query.TargetCountry, country.text())) keepService=true;
 							c++;
-							country=prov.get('//sld:ProviderOffering['+p+']'+'/sld:ServiceListOffering['+s+']'+'/sld:TargetCountry['+c+']', CSR_SCHEMA);
 						}
 						if (!keepService) removeService=true;
 					}
 
 					// remove remaining services that do not match the specified genre
 					if (!removeService && req.query.Genre) {
-						var g=1, keepService=false;
-						var genre=prov.get('//sld:ProviderOffering['+p+']'+'/sld:ServiceListOffering['+s+']'+'/sld:Genre['+g+']', CSR_SCHEMA);
-						while (!keepService && genre) {			
+						var genre, g=1, keepService=false;
+						while (!keepService && (genre=prov.get('//sld:ProviderOffering['+p+']'+'/sld:ServiceListOffering['+s+']'+'/sld:Genre['+g+']', CSR_SCHEMA))) {			
 							if (isIn(req.query.Genre, genre.text())) keepService=true;
 							g++;
-							genre=prov.get('//sld:ProviderOffering['+p+']'+'/sld:ServiceListOffering['+s+']'+'/sld:Genre['+g+']', CSR_SCHEMA);
 						}
 						if (!keepService) removeService=true;
 					}
@@ -142,22 +130,18 @@ app.get('/query', function(req,res){
 						servicesToRemove.push(serv);						
 					}
 					s++;
-					serv=doc.get('//sld:ProviderOffering['+p+']'+'/sld:ServiceListOffering['+s+']', CSR_SCHEMA);			
 				}
 				p++;
-				prov=doc.get('//sld:ProviderOffering['+p+']', CSR_SCHEMA);
 			}
 			servicesToRemove.forEach(service => service.remove());
 		}
 			
 		// remove any <ProviderOffering> that no longer have any <ServiceListOffering>
-		var p=1, providersToRemove=[];
-		var prov=doc.get('//sld:ProviderOffering['+p+']', CSR_SCHEMA);
-		while (prov) {
+		var prov, p=1, providersToRemove=[];
+		while (prov=doc.get('//sld:ProviderOffering['+p+']', CSR_SCHEMA)) {
 			if (!doc.get('//sld:ProviderOffering['+p+']'+'/sld:ServiceListOffering[1]', CSR_SCHEMA)) 
 				providersToRemove.push(prov);
 			p++;
-			prov=doc.get('//sld:ProviderOffering['+p+']', CSR_SCHEMA);
 		}
 		providersToRemove.forEach(provider => provider.remove());
 		
@@ -327,8 +311,8 @@ function readmyfile(filename) {
 }
 
 var https_options = {
-	key:readmyfile(keyFile),
-	cert:readmyfile(certFile)
+	key:readmyfile(keyFilename),
+	cert:readmyfile(certFilename)
 };
 
 if (https_options.key && https_options.cert) {
