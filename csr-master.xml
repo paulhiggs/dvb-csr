@@ -115,4 +115,28 @@
 			<sld:TargetCountry>AUT</sld:TargetCountry>
 		</sld:ServiceListOffering>
 	</sld:ProviderOffering>
+	<sld:ProviderOffering>
+		<sld:Provider>
+			<sld:Name>SES</sld:Name>
+			<sld:Address>
+				<mpeg7:Name>Jan</mpeg7:Name>
+				<mpeg7:PostalAddress>
+					<mpeg7:AddressLine>Luxembourg</mpeg7:AddressLine>
+				</mpeg7:PostalAddress>
+			</sld:Address>
+			<sld:ElectronicAddress>
+				<mpeg7:Telephone>+352 00000000</mpeg7:Telephone>
+				<mpeg7:Email>dvb-i@ses.com</mpeg7:Email>
+			</sld:ElectronicAddress>
+		</sld:Provider>
+		<sld:ServiceListOffering>
+			<sld:ServiceListName>Germany FTA</sld:ServiceListName>
+			<sld:ServiceListURI contentType="application/xml">
+				<dvbisd:URI>
+					http://www.satip.info/sites/satip/files/files/ASTRA_19_2_E.xml
+				</dvbisd:URI>
+			</sld:ServiceListURI>
+			<sld:TargetCountry>DEU</sld:TargetCountry>
+		</sld:ServiceListOffering>
+	</sld:ProviderOffering>
 </sld:ServiceListEntryPoints>
