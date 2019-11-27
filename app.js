@@ -98,32 +98,35 @@ app.get('/query', function(req,res){
 
 					// remove remaining services that do not match the specified language
 					if (!removeService && req.query.Language) {
-						var lang, l=1, keepService=false;
+						var lang, l=1, keepService=false, hasLanguage=false;
 						while (!keepService && (lang=prov.get('//sld:ProviderOffering['+p+']'+'/sld:ServiceListOffering['+s+']'+'/sld:Language['+l+']', CSR_SCHEMA))) {
+							hasLanguage=trus;
 							if (isIn(req.query.Language, lang.text())) keepService=true;
 							l++;
 						}
-						if (!keepService) removeService=true;
+						if (hasCountry && !keepService) removeService=true;
 					}
 					
 					// remove remaining services that do not match the specified target country
 					if (!removeService && req.query.TargetCountry) {
-						var country, c=1, keepService=false;
+						var country, c=1, keepService=false, hasCountry=false;
 						while (!keepService && (country=prov.get('//sld:ProviderOffering['+p+']'+'/sld:ServiceListOffering['+s+']'+'/sld:TargetCountry['+c+']', CSR_SCHEMA))) {	
+							hasCountry=true;
 							if (isIn(req.query.TargetCountry, country.text())) keepService=true;
 							c++;
 						}
-						if (!keepService) removeService=true;
+						if (hasCountry && !keepService) removeService=true;
 					}
 
 					// remove remaining services that do not match the specified genre
 					if (!removeService && req.query.Genre) {
-						var genre, g=1, keepService=false;
+						var genre, g=1, keepService=false, hasGenre=false;
 						while (!keepService && (genre=prov.get('//sld:ProviderOffering['+p+']'+'/sld:ServiceListOffering['+s+']'+'/sld:Genre['+g+']', CSR_SCHEMA))) {			
+							hasGenre=true;
 							if (isIn(req.query.Genre, genre.text())) keepService=true;
 							g++;
 						}
-						if (!keepService) removeService=true;
+						if (hasGenre && !keepService) removeService=true;
 					}
 				
 					if (removeService) {
