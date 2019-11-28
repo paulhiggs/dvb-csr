@@ -3,27 +3,24 @@
 const express = require('express');
 var app = express();
 
+// libxmljs - https://github.com/libxmljs/libxmljs
+const libxml = require('libxmljs');
+
 // morgan - https://github.com/expressjs/morgan
 const morgan = require('morgan')
 
-// libxmljs - https://github.com/libxmljs/libxmljs
-const libxml = require("libxmljs");
-
-const fs=require("fs"), path=require("path");
+const fs=require('fs'), path=require('path');
 
 const https=require('https');
-const keyFilename=path.join('.','selfsigned.key'), certFilename=path.join('.','selfsigned.crt');
-
 const HTTP_SERVICE_PORT = 3000;
 const HTTPS_SERVICE_PORT=HTTP_SERVICE_PORT+1;
+const keyFilename=path.join('.','selfsigned.key'), certFilename=path.join('.','selfsigned.crt');
 
 // SLEPR == Service List Entry Point Registry
-const MASTER_SLEPR_FILE = "slepr-master.xml";
-const SLEPR_SCHEMA =  {'sld':'urn:dvb:metadata:servicelistdiscovery:2019'};
+const MASTER_SLEPR_FILE = path.join('.','slepr-master.xml');
 var masterSLEPR;
 
 const allowed_arguments = ['ProviderName', 'regulatorListFlag', 'Language', 'TargetCountry', 'Genre'];
-
 
 
 morgan.token('protocol', function getProtocol(req) {
@@ -60,12 +57,15 @@ app.get('/query', function(req,res){
 	else {
 		var slepr = libxml.parseXmlString(masterSLEPR);
 
+		var SLEPR_SCHEMA = {}, SCHEMA_PREFIX=slepr.root().namespace().prefix();
+		SLEPR_SCHEMA[slepr.root().namespace().prefix()]=slepr.root().namespace().href();
+			
 		if (req.query.ProviderName) {
 			// if ProviderName is specified, remove any ProviderOffering entries that do not match the name
 			var prov, p=1, providerCleanup = [];
-			while (prov=slepr.get('//sld:ProviderOffering['+p+']', SLEPR_SCHEMA)) {
+			while (prov=slepr.get('//'+SCHEMA_PREFIX+':ProviderOffering['+p+']', SLEPR_SCHEMA)) {
 				var provName, n=1, matchedProvider=false;
-				while ((provName=prov.get('//sld:ProviderOffering['+p+']/sld:Provider/sld:Name['+n+']', SLEPR_SCHEMA)) && !matchedProvider) {
+				while ((provName=prov.get('//'+SCHEMA_PREFIX+':ProviderOffering['+p+']/'+SCHEMA_PREFIX+':Provider/sld:Name['+n+']', SLEPR_SCHEMA)) && !matchedProvider) {
 					if (isIn(req.query.ProviderName, provName.text())) {
 						matchedProvider=true;
 					}						
@@ -81,9 +81,9 @@ app.get('/query', function(req,res){
 
 		if (req.query.regulatorListFlag || req.query.Language || req.query.TargetCountry || req.query.Genre) {
 			var prov, p=1, servicesToRemove=[];
-			while (prov=slepr.get('//sld:ProviderOffering['+p+']', SLEPR_SCHEMA)) {
+			while (prov=slepr.get('//'+SCHEMA_PREFIX+':ProviderOffering['+p+']', SLEPR_SCHEMA)) {
 				var serv, s=1;
-				while (serv=prov.get('//sld:ProviderOffering['+p+']'+'/sld:ServiceListOffering['+s+']', SLEPR_SCHEMA)) {
+				while (serv=prov.get('//'+SCHEMA_PREFIX+':ProviderOffering['+p+']/'+SCHEMA_PREFIX+':ServiceListOffering['+s+']', SLEPR_SCHEMA)) {
 					var removeService=false;
 				
 					// remove services that do not match the specified regulator list flag
@@ -91,27 +91,24 @@ app.get('/query', function(req,res){
 						// The regulatorListFlag has been specified in the query, so it has to match. Default in instance document is "false"
 						var flag=serv.attr("regulatorListFlag");
 						if (flag) flag=flag.value(); else flag="false";
-						if (req.query.regulatorListFlag != flag) {
-							// remove this service entry
-							removeService=true;
-						}
+						if (req.query.regulatorListFlag != flag) removeService=true;
 					}
 
 					// remove remaining services that do not match the specified language
 					if (!removeService && req.query.Language) {
 						var lang, l=1, keepService=false, hasLanguage=false;
-						while (!keepService && (lang=prov.get('//sld:ProviderOffering['+p+']'+'/sld:ServiceListOffering['+s+']'+'/sld:Language['+l+']', SLEPR_SCHEMA))) {
-							hasLanguage=trus;
+						while (!keepService && (lang=prov.get('//'+SCHEMA_PREFIX+':ProviderOffering['+p+']/'+SCHEMA_PREFIX+':ServiceListOffering['+s+']/'+SCHEMA_PREFIX+':Language['+l+']', SLEPR_SCHEMA))) {
+							hasLanguage=true;
 							if (isIn(req.query.Language, lang.text())) keepService=true;
 							l++;
 						}
-						if (hasCountry && !keepService) removeService=true;
+						if (hasLanguage && !keepService) removeService=true;
 					}
 					
 					// remove remaining services that do not match the specified target country
 					if (!removeService && req.query.TargetCountry) {
 						var country, c=1, keepService=false, hasCountry=false;
-						while (!keepService && (country=prov.get('//sld:ProviderOffering['+p+']'+'/sld:ServiceListOffering['+s+']'+'/sld:TargetCountry['+c+']', SLEPR_SCHEMA))) {	
+						while (!keepService && (country=prov.get('//'+SCHEMA_PREFIX+':ProviderOffering['+p+']/'+SCHEMA_PREFIX+':ServiceListOffering['+s+']/'+SCHEMA_PREFIX+':TargetCountry['+c+']', SLEPR_SCHEMA))) {	
 							hasCountry=true;
 							if (isIn(req.query.TargetCountry, country.text())) keepService=true;
 							c++;
@@ -122,7 +119,7 @@ app.get('/query', function(req,res){
 					// remove remaining services that do not match the specified genre
 					if (!removeService && req.query.Genre) {
 						var genre, g=1, keepService=false, hasGenre=false;	
-						while (!keepService && (genre=prov.get('//sld:ProviderOffering['+p+']'+'/sld:ServiceListOffering['+s+']'+'/sld:Genre['+g+']', SLEPR_SCHEMA))) {			
+						while (!keepService && (genre=prov.get('//'+SCHEMA_PREFIX+':ProviderOffering['+p+']/'+SCHEMA_PREFIX+':ServiceListOffering['+s+']/'+SCHEMA_PREFIX+':Genre['+g+']', SLEPR_SCHEMA))) {			
 							hasGenre=true;
 							if (isIn(req.query.Genre, genre.text())) keepService=true;
 							g++;
@@ -142,8 +139,8 @@ app.get('/query', function(req,res){
 			
 		// remove any <ProviderOffering> that no longer have any <ServiceListOffering>
 		var prov, p=1, providersToRemove=[];
-		while (prov=slepr.get('//sld:ProviderOffering['+p+']', SLEPR_SCHEMA)) {
-			if (!slepr.get('//sld:ProviderOffering['+p+']'+'/sld:ServiceListOffering[1]', SLEPR_SCHEMA)) 
+		while (prov=slepr.get('//'+SCHEMA_PREFIX+':ProviderOffering['+p+']', SLEPR_SCHEMA)) {
+			if (!slepr.get('//'+SCHEMA_PREFIX+':ProviderOffering['+p+']/'+SCHEMA_PREFIX+':ServiceListOffering[1]', SLEPR_SCHEMA)) 
 				providersToRemove.push(prov);
 			p++;
 		}
