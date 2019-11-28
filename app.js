@@ -17,12 +17,13 @@ const keyFilename=path.join('.','selfsigned.key'), certFilename=path.join('.','s
 const HTTP_SERVICE_PORT = 3000;
 const HTTPS_SERVICE_PORT=HTTP_SERVICE_PORT+1;
 
-const MASTER_CSR_FILE = "csr-master.xml";
-const CSR_SCHEMA =  {'sld':'urn:dvb:metadata:servicelistdiscovery:2019'};
+// SLEPR == Service List Entry Point Registry
+const MASTER_SLEPR_FILE = "slepr-master.xml";
+const SLEPR_SCHEMA =  {'sld':'urn:dvb:metadata:servicelistdiscovery:2019'};
+var masterSLEPR;
 
 const allowed_arguments = ['ProviderName', 'regulatorListFlag', 'Language', 'TargetCountry', 'Genre'];
 
-var masterCSR;
 
 
 morgan.token('protocol', function getProtocol(req) {
@@ -57,14 +58,14 @@ app.get('/query', function(req,res){
 		res.status(400);
 	}
 	else {
-		var doc = libxml.parseXmlString(masterCSR);
+		var slepr = libxml.parseXmlString(masterSLEPR);
 
 		if (req.query.ProviderName) {
 			// if ProviderName is specified, remove any ProviderOffering entries that do not match the name
 			var prov, p=1, providerCleanup = [];
-			while (prov=doc.get('//sld:ProviderOffering['+p+']', CSR_SCHEMA)) {
+			while (prov=slepr.get('//sld:ProviderOffering['+p+']', SLEPR_SCHEMA)) {
 				var provName, n=1, matchedProvider=false;
-				while ((provName=prov.get('//sld:ProviderOffering['+p+']/sld:Provider/sld:Name['+n+']', CSR_SCHEMA)) && !matchedProvider) {
+				while ((provName=prov.get('//sld:ProviderOffering['+p+']/sld:Provider/sld:Name['+n+']', SLEPR_SCHEMA)) && !matchedProvider) {
 					if (isIn(req.query.ProviderName, provName.text())) {
 						matchedProvider=true;
 					}						
@@ -80,9 +81,9 @@ app.get('/query', function(req,res){
 
 		if (req.query.regulatorListFlag || req.query.Language || req.query.TargetCountry || req.query.Genre) {
 			var prov, p=1, servicesToRemove=[];
-			while (prov=doc.get('//sld:ProviderOffering['+p+']', CSR_SCHEMA)) {
+			while (prov=slepr.get('//sld:ProviderOffering['+p+']', SLEPR_SCHEMA)) {
 				var serv, s=1;
-				while (serv=prov.get('//sld:ProviderOffering['+p+']'+'/sld:ServiceListOffering['+s+']', CSR_SCHEMA)) {
+				while (serv=prov.get('//sld:ProviderOffering['+p+']'+'/sld:ServiceListOffering['+s+']', SLEPR_SCHEMA)) {
 					var removeService=false;
 				
 					// remove services that do not match the specified regulator list flag
@@ -99,7 +100,7 @@ app.get('/query', function(req,res){
 					// remove remaining services that do not match the specified language
 					if (!removeService && req.query.Language) {
 						var lang, l=1, keepService=false, hasLanguage=false;
-						while (!keepService && (lang=prov.get('//sld:ProviderOffering['+p+']'+'/sld:ServiceListOffering['+s+']'+'/sld:Language['+l+']', CSR_SCHEMA))) {
+						while (!keepService && (lang=prov.get('//sld:ProviderOffering['+p+']'+'/sld:ServiceListOffering['+s+']'+'/sld:Language['+l+']', SLEPR_SCHEMA))) {
 							hasLanguage=trus;
 							if (isIn(req.query.Language, lang.text())) keepService=true;
 							l++;
@@ -110,7 +111,7 @@ app.get('/query', function(req,res){
 					// remove remaining services that do not match the specified target country
 					if (!removeService && req.query.TargetCountry) {
 						var country, c=1, keepService=false, hasCountry=false;
-						while (!keepService && (country=prov.get('//sld:ProviderOffering['+p+']'+'/sld:ServiceListOffering['+s+']'+'/sld:TargetCountry['+c+']', CSR_SCHEMA))) {	
+						while (!keepService && (country=prov.get('//sld:ProviderOffering['+p+']'+'/sld:ServiceListOffering['+s+']'+'/sld:TargetCountry['+c+']', SLEPR_SCHEMA))) {	
 							hasCountry=true;
 							if (isIn(req.query.TargetCountry, country.text())) keepService=true;
 							c++;
@@ -120,8 +121,8 @@ app.get('/query', function(req,res){
 
 					// remove remaining services that do not match the specified genre
 					if (!removeService && req.query.Genre) {
-						var genre, g=1, keepService=false, hasGenre=false;
-						while (!keepService && (genre=prov.get('//sld:ProviderOffering['+p+']'+'/sld:ServiceListOffering['+s+']'+'/sld:Genre['+g+']', CSR_SCHEMA))) {			
+						var genre, g=1, keepService=false, hasGenre=false;	
+						while (!keepService && (genre=prov.get('//sld:ProviderOffering['+p+']'+'/sld:ServiceListOffering['+s+']'+'/sld:Genre['+g+']', SLEPR_SCHEMA))) {			
 							hasGenre=true;
 							if (isIn(req.query.Genre, genre.text())) keepService=true;
 							g++;
@@ -141,15 +142,15 @@ app.get('/query', function(req,res){
 			
 		// remove any <ProviderOffering> that no longer have any <ServiceListOffering>
 		var prov, p=1, providersToRemove=[];
-		while (prov=doc.get('//sld:ProviderOffering['+p+']', CSR_SCHEMA)) {
-			if (!doc.get('//sld:ProviderOffering['+p+']'+'/sld:ServiceListOffering[1]', CSR_SCHEMA)) 
+		while (prov=slepr.get('//sld:ProviderOffering['+p+']', SLEPR_SCHEMA)) {
+			if (!slepr.get('//sld:ProviderOffering['+p+']'+'/sld:ServiceListOffering[1]', SLEPR_SCHEMA)) 
 				providersToRemove.push(prov);
 			p++;
 		}
 		providersToRemove.forEach(provider => provider.remove());
 		
 		res.type('text/xml');
-		res.send(doc.toString());
+		res.send(slepr.toString());
 	}
 	res.end();
 });
@@ -273,9 +274,9 @@ function checkQuery(req) {
 }
 
 function loadServiceListRegistry() {
-	fs.readFile(MASTER_CSR_FILE, {encoding: 'utf-8'}, function(err,data){
+	fs.readFile(MASTER_SLEPR_FILE, {encoding: 'utf-8'}, function(err,data){
 		if (!err) {
-			masterCSR = data.replace(/(\r\n|\n|\r|\t)/gm,"");
+			masterSLEPR = data.replace(/(\r\n|\n|\r|\t)/gm,"");
 		} else {
 			console.log(err);
 		}
