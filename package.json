@@ -1,6 +1,6 @@
 {
-	"name": "DVB-CSR",
-	"description": "DVB CSR responder",
+	"name": "DVB-SLR",
+	"description": "DVB Service List Registry (HTTP responder)",
 	"version": "0.0.1",
 	"private": true,
 	"dependencies": {

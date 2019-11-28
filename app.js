@@ -98,9 +98,8 @@ app.get('/query', function(req,res){
 					if (!removeService && req.query.Language) {
 						var lang, l=1, keepService=false, hasLanguage=false;
 						while (!keepService && (lang=prov.get('//'+SCHEMA_PREFIX+':ProviderOffering['+p+']/'+SCHEMA_PREFIX+':ServiceListOffering['+s+']/'+SCHEMA_PREFIX+':Language['+l+']', SLEPR_SCHEMA))) {
-							hasLanguage=true;
 							if (isIn(req.query.Language, lang.text())) keepService=true;
-							l++;
+							l++; hasLanguage=true;
 						}
 						if (hasLanguage && !keepService) removeService=true;
 					}
@@ -109,9 +108,8 @@ app.get('/query', function(req,res){
 					if (!removeService && req.query.TargetCountry) {
 						var country, c=1, keepService=false, hasCountry=false;
 						while (!keepService && (country=prov.get('//'+SCHEMA_PREFIX+':ProviderOffering['+p+']/'+SCHEMA_PREFIX+':ServiceListOffering['+s+']/'+SCHEMA_PREFIX+':TargetCountry['+c+']', SLEPR_SCHEMA))) {	
-							hasCountry=true;
 							if (isIn(req.query.TargetCountry, country.text())) keepService=true;
-							c++;
+							c++; hasCountry=true;
 						}
 						if (hasCountry && !keepService) removeService=true;
 					}
@@ -120,16 +118,13 @@ app.get('/query', function(req,res){
 					if (!removeService && req.query.Genre) {
 						var genre, g=1, keepService=false, hasGenre=false;	
 						while (!keepService && (genre=prov.get('//'+SCHEMA_PREFIX+':ProviderOffering['+p+']/'+SCHEMA_PREFIX+':ServiceListOffering['+s+']/'+SCHEMA_PREFIX+':Genre['+g+']', SLEPR_SCHEMA))) {			
-							hasGenre=true;
 							if (isIn(req.query.Genre, genre.text())) keepService=true;
-							g++;
+							g++; hasGenre=true;
 						}
 						if (hasGenre && !keepService) removeService=true;
 					}
 				
-					if (removeService) {
-						servicesToRemove.push(serv);						
-					}
+					if (removeService) servicesToRemove.push(serv);						
 					s++;
 				}
 				p++;
