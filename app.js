@@ -108,7 +108,10 @@ app.get('/query', function(req,res){
 					if (!removeService && req.query.TargetCountry) {
 						var country, c=1, keepService=false, hasCountry=false;
 						while (!keepService && (country=prov.get('//'+SCHEMA_PREFIX+':ProviderOffering['+p+']/'+SCHEMA_PREFIX+':ServiceListOffering['+s+']/'+SCHEMA_PREFIX+':TargetCountry['+c+']', SLEPR_SCHEMA))) {	
-							if (isIn(req.query.TargetCountry, country.text())) keepService=true;
+							// note that the <TargetCountry> element can signal multiple values. Its XML pattern is "\c\c\c(,\c\c\c)*"
+							var countries=country.text().split(",");
+							countries.forEach(country => {if (isIn(req.query.TargetCountry, country)) keepService=true;})
+							//if (isIn(req.query.TargetCountry, country.text())) keepService=true;
 							c++; hasCountry=true;
 						}
 						if (hasCountry && !keepService) removeService=true;
