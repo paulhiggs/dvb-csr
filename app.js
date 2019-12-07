@@ -17,11 +17,13 @@ const HTTPS_SERVICE_PORT=HTTP_SERVICE_PORT+1;
 const keyFilename=path.join('.','selfsigned.key'), certFilename=path.join('.','selfsigned.crt');
 
 // SLEPR == Service List Entry Point Registry
-const MASTER_SLEPR_FILE = path.join('.','slepr-master.xml');
+const MASTER_SLEPR_FILE=path.join('.','slepr-master.xml');
 var masterSLEPR;
 
 const allowed_arguments = ['ProviderName', 'regulatorListFlag', 'Language', 'TargetCountry', 'Genre'];
 
+const ISO3166_FILE=path.join('.','iso3166-countries.json');
+var allowed_countries;
 
 morgan.token('protocol', function getProtocol(req) {
 	return req.protocol;
@@ -154,18 +156,25 @@ app.get('/query', function(req,res){
 
 
 function isTVAAudioLanguageType(languageCode) {
-	// TV Anytime language is an XML datatype with some additional attributes
-	// http://www.datypic.com/sc/xsd/t-xsd_language.html
-	// any validation should occur through instance document validation. no range check is necessary
-	return true;
+	// any language specified should be an XML language
+	var languageRegex=/[a-zA-Z]{1,8}(-[a-zA-Z0-9]{1,8})*/g;
+	var s=languageCode.match(languageRegex);
+	return s[0] === languageCode;
 }
 
 function isISO3166code(countryCode) {
 	if (countryCode.length!=3) {
 		return false;
 	}
-	return true;
+	var found=false;
+	allowed_countries.forEach(country => {
+		console.dir(country.alpha3);
+		if (countryCode==country.alpha3) found=true;
+	});
+	return found;
 }
+
+
 
 function isGenre(genre) {
 	// DVB-I Genre is defined through classification schemes
@@ -204,20 +213,20 @@ function checkQuery(req) {
 		if (req.query.TargetCountry) {
 			if (typeof(req.query.TargetCountry)=="string"){
 				if (!isISO3166code(req.query.TargetCountry)) {
-					req.parseErr = "incorrect length for country ["+req.query.TargetCountry+"]";
+					req.parseErr = "incorrect country ["+req.query.TargetCountry+"]";
 					return false;
 				}					
 			}	
 			else if (typeof(req.query.TargetCountry)=="object") {
 				for (var i=0; i<req.query.TargetCountry.length; i++ ) {
 					if (!isISO3166code(req.query.TargetCountry[i])) {
-						req.parseErr = "incorrect length for country ["+req.query.TargetCountry[i]+"]";
+						req.parseErr = "incorrect country ["+req.query.TargetCountry[i]+"]";
 						return false;
 					}
 				}
 			}
 		}
-/* value space of these arguments is not checked
+
 		//Language(s)
 		if (req.query.Language) {
 			if (typeof(req.query.Language)=="string"){
@@ -233,6 +242,7 @@ function checkQuery(req) {
 				}
 			}
 		}
+/* value space of these arguments is not checked
 		// Genre(s)
 		if (req.query.Genre) {
 			if (typeof(req.query.Genre)=="string"){
@@ -272,6 +282,25 @@ function loadServiceListRegistry() {
 	fs.readFile(MASTER_SLEPR_FILE, {encoding: 'utf-8'}, function(err,data){
 		if (!err) {
 			masterSLEPR = data.replace(/(\r\n|\n|\r|\t)/gm,"");
+		} else {
+			console.log(err);
+		}
+	});	
+	
+	fs.readFile(ISO3166_FILE, {encoding: 'utf-8'}, function(err,data){
+		if (!err) {
+			allowed_countries = JSON.parse(data, function (key, value) {
+				if (key == "numeric") {
+					return new Number(value);
+				} else if (key == "alpha2") {
+					if (value.length!=2) return "**"; else return value;
+				} else if (key == "alpha3") {
+					if (value.length!=3) return "***"; else return value;
+				}
+				else {
+					return value;
+				}
+			});
 		} else {
 			console.log(err);
 		}
