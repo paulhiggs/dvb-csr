@@ -18,7 +18,7 @@
 		</sld:Address>
 		<sld:ElectronicAddress>
 			<mpeg7:Telephone>+41 22 7100000</mpeg7:Telephone>
-			<mpeg7:Email>admin@dvb.org</mpeg7:Email>
+			<mpeg7:Email>dvb@dvb.org</mpeg7:Email>
 		</sld:ElectronicAddress>
 	</sld:ServiceListRegistryEntity>
 	<sld:ProviderOffering>
@@ -137,6 +137,27 @@
 				</dvbisd:URI>
 			</sld:ServiceListURI>
 			<sld:TargetCountry>DEU</sld:TargetCountry>
+		</sld:ServiceListOffering>
+	</sld:ProviderOffering>
+	<sld:ProviderOffering>
+		<sld:Provider>
+			<sld:Name>DVB</sld:Name>
+			<sld:Address>
+				<mpeg7:Name>DVB-I contact</mpeg7:Name>
+				<mpeg7:PostalAddress>
+					<mpeg7:AddressLine>Geneva, Switzerland</mpeg7:AddressLine>
+				</mpeg7:PostalAddress>
+			</sld:Address>
+			<sld:ElectronicAddress>
+				<mpeg7:Telephone>+41 22 7100000</mpeg7:Telephone>
+				<mpeg7:Email>dvb@dvb.org</mpeg7:Email>
+			</sld:ElectronicAddress>
+		</sld:Provider>
+		<sld:ServiceListOffering regulatorListFlag="false">
+		<sld:ServiceListName>DVB-I Reference Client service list </sld:ServiceListName>
+			<sld:ServiceListURI contentType="application/xml">
+				<dvbisd:URI>https://raw.githubusercontent.com/DVBproject/DVB-I-Reference-Client/master/backend/servicelists/example.xml</dvbisd:URI>
+			</sld:ServiceListURI>
 		</sld:ServiceListOffering>
 	</sld:ProviderOffering>
 </sld:ServiceListEntryPoints>
