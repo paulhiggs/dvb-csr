@@ -67,7 +67,7 @@ app.get('/query', function(req,res){
 			var prov, p=1, providerCleanup = [];
 			while (prov=slepr.get('//'+SCHEMA_PREFIX+':ProviderOffering['+p+']', SLEPR_SCHEMA)) {
 				var provName, n=1, matchedProvider=false;
-				while ((provName=prov.get('//'+SCHEMA_PREFIX+':ProviderOffering['+p+']/'+SCHEMA_PREFIX+':Provider/sld:Name['+n+']', SLEPR_SCHEMA)) && !matchedProvider) {
+				while ((provName=prov.get('//'+SCHEMA_PREFIX+':ProviderOffering['+p+']/'+SCHEMA_PREFIX+':Provider/'+SCHEMA_PREFIX+':Name['+n+']', SLEPR_SCHEMA)) && !matchedProvider) {
 					if (isIn(req.query.ProviderName, provName.text())) {
 						matchedProvider=true;
 					}						
