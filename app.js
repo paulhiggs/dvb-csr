@@ -3,6 +3,8 @@
 const express = require('express');
 var app = express();
 
+const ISOcountries = require("./dvb-common/ISOcountries.js");
+
 // libxmljs - https://github.com/libxmljs/libxmljs
 const libxml = require('libxmljs');
 
@@ -22,8 +24,9 @@ var masterSLEPR;
 
 const allowed_arguments = ['ProviderName', 'regulatorListFlag', 'Language', 'TargetCountry', 'Genre'];
 
-const ISO3166_FILE=path.join('.','iso3166-countries.json');
-var allowed_countries;
+const ISO3166_FILE=path.join('dvb-common','iso3166-countries.json');
+var knownCountries = new ISOcountries();
+
 
 morgan.token('protocol', function getProtocol(req) {
 	return req.protocol;
@@ -162,19 +165,6 @@ function isTVAAudioLanguageType(languageCode) {
 	return s?s[0] === languageCode:false;
 }
 
-function isISO3166code(countryCode) {
-	if (countryCode.length!=3) {
-		return false;
-	}
-	var found=false;
-	allowed_countries.forEach(country => {
-		console.dir(country.alpha3);
-		if (countryCode==country.alpha3) found=true;
-	});
-	return found;
-}
-
-
 
 function isGenre(genre) {
 	// DVB-I Genre is defined through classification schemes
@@ -212,14 +202,14 @@ function checkQuery(req) {
 		//TargetCountry(s)
 		if (req.query.TargetCountry) {
 			if (typeof(req.query.TargetCountry)=="string"){
-				if (!isISO3166code(req.query.TargetCountry)) {
+				if (!knownCountries.isISO3166code(req.query.TargetCountry)) {
 					req.parseErr = "incorrect country ["+req.query.TargetCountry+"]";
 					return false;
 				}					
 			}	
 			else if (typeof(req.query.TargetCountry)=="object") {
 				for (var i=0; i<req.query.TargetCountry.length; i++ ) {
-					if (!isISO3166code(req.query.TargetCountry[i])) {
+					if (!knownCountries.isISO3166code(req.query.TargetCountry[i])) {
 						req.parseErr = "incorrect country ["+req.query.TargetCountry[i]+"]";
 						return false;
 					}
@@ -288,29 +278,10 @@ function loadServiceListRegistry() {
 	});	
 }
 
-function loadISOcountries(filename) {	
-	fs.readFile(filename, {encoding: 'utf-8'}, function(err,data){
-		if (!err) {
-			allowed_countries = JSON.parse(data, function (key, value) {
-				if (key == "numeric") {
-					return new Number(value);
-				} else if (key == "alpha2") {
-					if (value.length!=2) return "**"; else return value;
-				} else if (key == "alpha3") {
-					if (value.length!=3) return "***"; else return value;
-				}
-				else {
-					return value;
-				}
-			});
-		} else {
-			console.log(err);
-		}
-	});	
-}
-
 app.get('/reload', function(req,res){
 	loadServiceListRegistry();
+	knownCountries.reset();
+	knownCountries.loadCountriesFromFile(ISO3166_FILE);
 	res.status(200).end();
 });
 
@@ -319,12 +290,10 @@ app.get('*', function(req,res) {
 });
 
 
-
 loadServiceListRegistry();
-loadISOcountries(ISO3166_FILE);
+knownCountries.loadCountriesFromFile(ISO3166_FILE);
 
 // start the HTTP server
-
 var http_server = app.listen(HTTP_SERVICE_PORT, function() {
 	console.log("HTTP listening on port number", http_server.address().port);
 });
@@ -338,7 +307,7 @@ function readmyfile(filename) {
 		var stats=fs.statSync(filename);
 		if (stats.isFile()) return fs.readFileSync(filename); 
 	}
-	catch (err) {console.log(err);}
+	catch (err) {console.log(err.code,err.path);}
 	return null;
 }
 
