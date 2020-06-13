@@ -159,7 +159,7 @@ function isTVAAudioLanguageType(languageCode) {
 	// any language specified should be an XML language
 	var languageRegex=/[a-zA-Z]{1,8}(-[a-zA-Z0-9]{1,8})*/g;
 	var s=languageCode.match(languageRegex);
-	return s[0] === languageCode;
+	return s?s[0] === languageCode:false;
 }
 
 function isISO3166code(countryCode) {
@@ -286,8 +286,10 @@ function loadServiceListRegistry() {
 			console.log(err);
 		}
 	});	
-	
-	fs.readFile(ISO3166_FILE, {encoding: 'utf-8'}, function(err,data){
+}
+
+function loadISOcountries(filename) {	
+	fs.readFile(filename, {encoding: 'utf-8'}, function(err,data){
 		if (!err) {
 			allowed_countries = JSON.parse(data, function (key, value) {
 				if (key == "numeric") {
@@ -317,7 +319,9 @@ app.get('*', function(req,res) {
 });
 
 
+
 loadServiceListRegistry();
+loadISOcountries(ISO3166_FILE);
 
 // start the HTTP server
 
