@@ -13,7 +13,7 @@ The application works by reading in a reference/master XML document and then pru
 Note that these values are case sensitive, and a case sensitive matching is performed with the values, thus "AUT" != "aut"
 
 ## Installation
-1. Clone this repository `git clone https://github.com/paulhiggs/dvb-csr.git`
+1. Clone this repository `git clone https://github.com/paulhiggs/dvb-csr.git --recurse-submodules`
 1. Install necessary libraries (express, libxmljs, morgan)  `npm install`
 1. run it - `node app`
 
