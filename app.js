@@ -25,7 +25,7 @@ var masterSLEPR;
 const allowed_arguments = ['ProviderName', 'regulatorListFlag', 'Language', 'TargetCountry', 'Genre'];
 
 const ISO3166_FILE=path.join('dvb-common','iso3166-countries.json');
-var knownCountries = new ISOcountries();
+var knownCountries = new ISOcountries(false, true);
 
 
 morgan.token('protocol', function getProtocol(req) {
@@ -280,8 +280,7 @@ function loadServiceListRegistry() {
 
 app.get('/reload', function(req,res){
 	loadServiceListRegistry();
-	knownCountries.reset();
-	knownCountries.loadCountriesFromFile(ISO3166_FILE);
+	knownCountries.loadCountriesFromFile(ISO3166_FILE, true);
 	res.status(200).end();
 });
 
@@ -291,7 +290,7 @@ app.get('*', function(req,res) {
 
 
 loadServiceListRegistry();
-knownCountries.loadCountriesFromFile(ISO3166_FILE);
+knownCountries.loadCountriesFromFile(ISO3166_FILE, true);
 
 // start the HTTP server
 var http_server = app.listen(HTTP_SERVICE_PORT, function() {
