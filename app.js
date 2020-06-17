@@ -27,6 +27,12 @@ const allowed_arguments = ['ProviderName', 'regulatorListFlag', 'Language', 'Tar
 const ISO3166_FILE=path.join('dvb-common','iso3166-countries.json');
 var knownCountries = new ISOcountries(false, true);
 
+const IANAlanguages = require("./dvb-common/IANAlanguages.js");
+
+// curl from https://www.iana.org/assignments/language-subtag-registry/language-subtag-registry
+const IANA_Subtag_Registry_Filename=path.join("./dvb-common","language-subtag-registry");
+var knownLanguanges = new IANAlanguages();
+
 
 morgan.token('protocol', function getProtocol(req) {
 	return req.protocol;
@@ -291,6 +297,7 @@ app.get('*', function(req,res) {
 
 loadServiceListRegistry();
 knownCountries.loadCountriesFromFile(ISO3166_FILE, true);
+knownLanguages.loadLanguagesFromFile(IANA_Subtag_Registry_Filename, true);
 
 // start the HTTP server
 var http_server = app.listen(HTTP_SERVICE_PORT, function() {
