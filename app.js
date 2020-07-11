@@ -20,7 +20,7 @@ const keyFilename=path.join('.','selfsigned.key'), certFilename=path.join('.','s
 
 // SLEPR == Service List Entry Point Registry
 const MASTER_SLEPR_FILE=path.join('.','slepr-master.xml');
-var masterSLEPR;
+var masterSLEPR="";
 
 const allowed_arguments = ['ProviderName', 'regulatorListFlag', 'Language', 'TargetCountry', 'Genre'];
 
@@ -31,7 +31,7 @@ const IANAlanguages = require("./dvb-common/IANAlanguages.js");
 
 // curl from https://www.iana.org/assignments/language-subtag-registry/language-subtag-registry
 const IANA_Subtag_Registry_Filename=path.join("./dvb-common","language-subtag-registry");
-var knownLanguanges = new IANAlanguages();
+var knownLanguages = new IANAlanguages();
 
 
 morgan.token('protocol', function getProtocol(req) {
@@ -94,7 +94,7 @@ app.get('/query', function(req,res){
 			var prov, p=1, servicesToRemove=[];
 			while (prov=slepr.get('//'+SCHEMA_PREFIX+':ProviderOffering['+p+']', SLEPR_SCHEMA)) {
 				var serv, s=1;
-				while (serv=prov.get('//'+SCHEMA_PREFIX+':ProviderOffering['+p+']/'+SCHEMA_PREFIX+':ServiceListOffering['+s+']', SLEPR_SCHEMA)) {
+				while (serv=prov.get(SCHEMA_PREFIX+':ServiceListOffering['+s+']', SLEPR_SCHEMA)) {
 					var removeService=false;
 				
 					// remove services that do not match the specified regulator list flag
@@ -108,7 +108,7 @@ app.get('/query', function(req,res){
 					// remove remaining services that do not match the specified language
 					if (!removeService && req.query.Language) {
 						var lang, l=1, keepService=false, hasLanguage=false;
-						while (!keepService && (lang=prov.get('//'+SCHEMA_PREFIX+':ProviderOffering['+p+']/'+SCHEMA_PREFIX+':ServiceListOffering['+s+']/'+SCHEMA_PREFIX+':Language['+l+']', SLEPR_SCHEMA))) {
+						while (!keepService && (lang=serv.get(SCHEMA_PREFIX+':Language['+l+']', SLEPR_SCHEMA))) {
 							if (isIn(req.query.Language, lang.text())) keepService=true;
 							l++; hasLanguage=true;
 						}
@@ -118,7 +118,7 @@ app.get('/query', function(req,res){
 					// remove remaining services that do not match the specified target country
 					if (!removeService && req.query.TargetCountry) {
 						var country, c=1, keepService=false, hasCountry=false;
-						while (!keepService && (country=prov.get('//'+SCHEMA_PREFIX+':ProviderOffering['+p+']/'+SCHEMA_PREFIX+':ServiceListOffering['+s+']/'+SCHEMA_PREFIX+':TargetCountry['+c+']', SLEPR_SCHEMA))) {	
+						while (!keepService && (country=serv.get(SCHEMA_PREFIX+':TargetCountry['+c+']', SLEPR_SCHEMA))) {	
 							// note that the <TargetCountry> element can signal multiple values. Its XML pattern is "\c\c\c(,\c\c\c)*"
 							var countries=country.text().split(",");
 							countries.forEach(country => {if (isIn(req.query.TargetCountry, country)) keepService=true;})
@@ -131,7 +131,7 @@ app.get('/query', function(req,res){
 					// remove remaining services that do not match the specified genre
 					if (!removeService && req.query.Genre) {
 						var genre, g=1, keepService=false, hasGenre=false;	
-						while (!keepService && (genre=prov.get('//'+SCHEMA_PREFIX+':ProviderOffering['+p+']/'+SCHEMA_PREFIX+':ServiceListOffering['+s+']/'+SCHEMA_PREFIX+':Genre['+g+']', SLEPR_SCHEMA))) {			
+						while (!keepService && (genre=serv.get(SCHEMA_PREFIX+':Genre['+g+']', SLEPR_SCHEMA))) {			
 							if (isIn(req.query.Genre, genre.text())) keepService=true;
 							g++; hasGenre=true;
 						}
@@ -160,8 +160,6 @@ app.get('/query', function(req,res){
 	}
 	res.end();
 });
-
-
 
 
 function isTVAAudioLanguageType(languageCode) {
