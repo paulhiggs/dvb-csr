@@ -289,9 +289,16 @@ function loadServiceListRegistry(filename) {
 	});	
 }
 
-app.get('/reload', function(req,res){
+app.get('/reload', function(req,res) {
 	loadServiceListRegistry(MASTER_SLEPR_FILE);
 	knownCountries.loadCountriesFromFile(ISO3166_FILE, true);
+	res.status(200).end();
+});
+
+
+app.get('/stats', function(req,res) {
+	console.log("knownLanguages.length=", knownLanguages.languagesList.length);
+	console.log("knownCountries.length=", knownCountries.count());
 	res.status(200).end();
 });
 
