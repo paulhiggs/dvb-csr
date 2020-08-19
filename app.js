@@ -48,6 +48,13 @@ morgan.token('agent',function getAgent(req) {
 app.use(morgan(':remote-addr :protocol :method :url :status :res[content-length] - :response-time ms :agent :parseErr'));
 
 
+/**
+ * determines if a value is in a set of values - simular to 
+ *
+ * @param {String or Array} values The set of values to check existance in
+ * @param {String} value The value to check for existance
+ * @return {boolean} if value is in the set of values
+ */
 function isIn(args, value){
 	if (typeof(args)=="string")
 		return args==value;
@@ -58,6 +65,18 @@ function isIn(args, value){
 				return true;
 	}
 	return false;
+}
+
+
+/**
+ * constructs an XPath based on the provided arguments
+ * @param {string} SCHEMA_PREFIX Used when constructing Xpath queries
+ * @param {string} elementName the name of the element to be searched for
+ * @param {int} index the instance of the named element to be searched for (if specified)
+ * @returns {string} the XPath selector
+ */
+function xPath(SCHEMA_PREFIX, elementName, index=null) {
+	return SCHEMA_PREFIX+":"+elementName+(index?"["+index+"]":"")
 }
 
 
@@ -73,83 +92,80 @@ app.get('/query', function(req,res){
 			
 		if (req.query.ProviderName) {
 			// if ProviderName is specified, remove any ProviderOffering entries that do not match the name
-			var prov, p=1, providerCleanup=[];
-			while (prov=slepr.get('//'+SCHEMA_PREFIX+':ProviderOffering['+p+']', SLEPR_SCHEMA)) {
-				var provName, n=1, matchedProvider=false;
-				while ((provName=prov.get(SCHEMA_PREFIX+':Provider/'+SCHEMA_PREFIX+':Name['+n+']', SLEPR_SCHEMA)) && !matchedProvider) {
+			var prov, p=0, providerCleanup=[];
+			while (prov=slepr.get('//'+xPath(SCHEMA_PREFIX, 'ProviderOffering', ++p), SLEPR_SCHEMA)) {
+				var provName, n=0, matchedProvider=false;
+				while ((provName=prov.get(xPath(SCHEMA_PREFIX, 'Provider')+'/'+xPath(SCHEMA_PREFIX,'Name', ++n), SLEPR_SCHEMA)) && !matchedProvider) {
 					if (isIn(req.query.ProviderName, provName.text())) 
 						matchedProvider=true;					
-					n++;
 				}
 				if (!matchedProvider) 
 					providerCleanup.push(prov);
-				p++;
 			}
 			providerCleanup.forEach(provider => provider.remove());
 		}
 
 		if (req.query.regulatorListFlag || req.query.Language || req.query.TargetCountry || req.query.Genre) {
-			var prov, p=1, servicesToRemove=[];
-			while (prov=slepr.get('//'+SCHEMA_PREFIX+':ProviderOffering['+p+']', SLEPR_SCHEMA)) {
-				var serv, s=1;
-				while (serv=prov.get(SCHEMA_PREFIX+':ServiceListOffering['+s+']', SLEPR_SCHEMA)) {
+			var prov, p=0, servicesToRemove=[];
+			while (prov=slepr.get('//'+xPath(SCHEMA_PREFIX, 'ProviderOffering', ++p), SLEPR_SCHEMA)) {
+				var serv, s=0;
+				while (serv=prov.get(xPath(SCHEMA_PREFIX, 'ServiceListOffering', ++s), SLEPR_SCHEMA)) {
 					var removeService=false;
 				
 					// remove services that do not match the specified regulator list flag
 					if (req.query.regulatorListFlag) {
 						// The regulatorListFlag has been specified in the query, so it has to match. Default in instance document is "false"
-						var flag=serv.attr("regulatorListFlag");
-						if (flag) flag=flag.value(); else flag="false";
-						if (req.query.regulatorListFlag != flag) removeService=true;
+						var flag=serv.attr("regulatorListFlag")?serv.attr("regulatorListFlag").value():"false"
+						if (req.query.regulatorListFlag != flag ) 
+							removeService=true;
 					}
 
 					// remove remaining services that do not match the specified language
 					if (!removeService && req.query.Language) {
-						var lang, l=1, keepService=false, hasLanguage=false;
-						while (!keepService && (lang=serv.get(SCHEMA_PREFIX+':Language['+l+']', SLEPR_SCHEMA))) {
+						var lang, l=0, keepService=false, hasLanguage=false;
+						while (!keepService && (lang=serv.get(xPath(SCHEMA_PREFIX, 'Language', ++l), SLEPR_SCHEMA))) {
 							if (isIn(req.query.Language, lang.text())) keepService=true;
-							l++; hasLanguage=true;
+							hasLanguage=true;
 						}
 						if (hasLanguage && !keepService) removeService=true;
 					}
 					
 					// remove remaining services that do not match the specified target country
 					if (!removeService && req.query.TargetCountry) {
-						var country, c=1, keepService=false, hasCountry=false;
-						while (!keepService && (country=serv.get(SCHEMA_PREFIX+':TargetCountry['+c+']', SLEPR_SCHEMA))) {	
+						var country, c=0, keepService=false, hasCountry=false;
+						while (!keepService && (country=serv.get(xPath(SCHEMA_PREFIX, 'TargetCountry', ++c), SLEPR_SCHEMA))) {	
 							// note that the <TargetCountry> element can signal multiple values. Its XML pattern is "\c\c\c(,\c\c\c)*"
 							var countries=country.text().split(",");
-							countries.forEach(country => {if (isIn(req.query.TargetCountry, country)) keepService=true;})
+							countries.forEach(country => {
+								if (isIn(req.query.TargetCountry, country)) keepService=true;
+							})
 							//if (isIn(req.query.TargetCountry, country.text())) keepService=true;
-							c++; hasCountry=true;
+							hasCountry=true;
 						}
 						if (hasCountry && !keepService) removeService=true;
 					}
 
 					// remove remaining services that do not match the specified genre
 					if (!removeService && req.query.Genre) {
-						var genre, g=1, keepService=false, hasGenre=false;	
-						while (!keepService && (genre=serv.get(SCHEMA_PREFIX+':Genre['+g+']', SLEPR_SCHEMA))) {			
+						var genre, g=0, keepService=false, hasGenre=false;	
+						while (!keepService && (genre=serv.get(xPath(SCHEMA_PREFIX, 'Genre', ++g), SLEPR_SCHEMA))) {			
 							if (isIn(req.query.Genre, genre.text())) keepService=true;
-							g++; hasGenre=true;
+							hasGenre=true;
 						}
 						if (hasGenre && !keepService) removeService=true;
 					}
 				
 					if (removeService) servicesToRemove.push(serv);						
-					s++;
 				}
-				p++;
 			}
 			servicesToRemove.forEach(service => service.remove());
 		}
 			
 		// remove any <ProviderOffering> elements that no longer have any <ServiceListOffering>
-		var prov, p=1, providersToRemove=[];
-		while (prov=slepr.get('//'+SCHEMA_PREFIX+':ProviderOffering['+p+']', SLEPR_SCHEMA)) {
-			if (!prov.get(SCHEMA_PREFIX+':ServiceListOffering[1]', SLEPR_SCHEMA)) 
+		var prov, p=0, providersToRemove=[];
+		while (prov=slepr.get('//'+xPath(SCHEMA_PREFIX, 'ProviderOffering', ++p), SLEPR_SCHEMA)) {
+			if (!prov.get(xPath(SCHEMA_PREFIX, 'ServiceListOffering', 1), SLEPR_SCHEMA)) 
 				providersToRemove.push(prov);
-			p++;
 		}
 		providersToRemove.forEach(provider => provider.remove());
 		
