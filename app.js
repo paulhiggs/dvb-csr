@@ -13,16 +13,25 @@ const morgan = require('morgan')
 
 const fs=require('fs'), path=require('path');
 
+// command line arguments - https://github.com/75lb/command-line-args
+const commandLineArgs=require('command-line-args');
+
 const https=require('https');
-const HTTP_SERVICE_PORT = 3000;
-const HTTPS_SERVICE_PORT=HTTP_SERVICE_PORT+1;
 const keyFilename=path.join('.','selfsigned.key'), certFilename=path.join('.','selfsigned.crt');
 
 // SLEPR == Service List Entry Point Registry
 const MASTER_SLEPR_FILE=path.join('.','slepr-master.xml');
 var masterSLEPR="";
 
+// permitted query parameters
 const allowed_arguments = ['ProviderName', 'regulatorListFlag', 'Language', 'TargetCountry', 'Genre'];
+
+// command line options
+const DEFAULT_HTTP_SERVICE_PORT = 3000;
+const optionDefinitions=[
+  { name: 'port', alias: 'p', type: Number, defaultValue:DEFAULT_HTTP_SERVICE_PORT },
+  { name: 'sport', alias: 's', type: Number, defaultValue:DEFAULT_HTTP_SERVICE_PORT+1 }
+]
 
 const ISO3166_FILE=path.join('dvb-common','iso3166-countries.json');
 var knownCountries = new ISOcountries(false, true);
@@ -323,12 +332,14 @@ app.get('*', function(req,res) {
 });
 
 
+const options=commandLineArgs(optionDefinitions);
+
 loadServiceListRegistry(MASTER_SLEPR_FILE);
 knownCountries.loadCountriesFromFile(ISO3166_FILE, true);
 knownLanguages.loadLanguagesFromFile(IANA_Subtag_Registry_Filename, true);
 
 // start the HTTP server
-var http_server=app.listen(HTTP_SERVICE_PORT, function() {
+var http_server=app.listen(options.port, function() {
 	console.log("HTTP listening on port number", http_server.address().port);
 });
 
@@ -352,7 +363,7 @@ var https_options = {
 
 if (https_options.key && https_options.cert) {
 	var https_server=https.createServer(https_options, app);
-	https_server.listen(HTTPS_SERVICE_PORT, function(){
+	https_server.listen(options.sport, function(){
 		console.log("HTTPS listening on port number", https_server.address().port);
 	});
 }
