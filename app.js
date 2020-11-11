@@ -1,15 +1,16 @@
 // node.js - https://nodejs.org/en/
 // express framework - https://expressjs.com/en/4x/api.html
-const express = require('express');
-var app = express();
+const express=require('express');
+var app=express();
 
-const ISOcountries = require("./dvb-common/ISOcountries.js");
+const ISOcountries=require("./dvb-common/ISOcountries.js");
+const dvbi=require("./dvb-common/DVB-I_definitions.js")
 
 // libxmljs - https://github.com/libxmljs/libxmljs
-const libxml = require('libxmljs');
+const libxml=require('libxmljs');
 
 // morgan - https://github.com/expressjs/morgan
-const morgan = require('morgan')
+const morgan=require('morgan')
 
 const fs=require('fs'), path=require('path');
 
@@ -24,10 +25,10 @@ const MASTER_SLEPR_FILE=path.join('.','slepr-master.xml');
 var masterSLEPR="";
 
 // permitted query parameters
-const allowed_arguments = ['ProviderName', 'regulatorListFlag', 'Language', 'TargetCountry', 'Genre'];
+const allowed_arguments=[dvbi.e_ProviderName, dvbi.a_regulatorListFlag, dvbi.e_Language, dvbi.e_TargetCountry, dvbi.e_Genre];
 
 // command line options
-const DEFAULT_HTTP_SERVICE_PORT = 3000;
+const DEFAULT_HTTP_SERVICE_PORT=3000;
 const optionDefinitions=[
   { name: 'port', alias: 'p', type: Number, defaultValue:DEFAULT_HTTP_SERVICE_PORT },
   { name: 'sport', alias: 's', type: Number, defaultValue:DEFAULT_HTTP_SERVICE_PORT+1 }
@@ -102,9 +103,9 @@ app.get('/query', function(req,res){
 		if (req.query.ProviderName) {
 			// if ProviderName is specified, remove any ProviderOffering entries that do not match the name
 			var prov, p=0, providerCleanup=[];
-			while (prov=slepr.get('//'+xPath(SCHEMA_PREFIX, 'ProviderOffering', ++p), SLEPR_SCHEMA)) {
+			while (prov=slepr.get('//'+xPath(SCHEMA_PREFIX, dvbi.e_ProviderOffering, ++p), SLEPR_SCHEMA)) {
 				var provName, n=0, matchedProvider=false;
-				while ((provName=prov.get(xPath(SCHEMA_PREFIX, 'Provider')+'/'+xPath(SCHEMA_PREFIX,'Name', ++n), SLEPR_SCHEMA)) && !matchedProvider) {
+				while ((provName=prov.get(xPath(SCHEMA_PREFIX, dvbi.e_Provider)+'/'+xPath(SCHEMA_PREFIX, dvbi.e_Name, ++n), SLEPR_SCHEMA)) && !matchedProvider) {
 					if (isIn(req.query.ProviderName, provName.text())) 
 						matchedProvider=true;					
 				}
@@ -116,15 +117,15 @@ app.get('/query', function(req,res){
 
 		if (req.query.regulatorListFlag || req.query.Language || req.query.TargetCountry || req.query.Genre) {
 			var prov, p=0, servicesToRemove=[];
-			while (prov=slepr.get('//'+xPath(SCHEMA_PREFIX, 'ProviderOffering', ++p), SLEPR_SCHEMA)) {
+			while (prov=slepr.get('//'+xPath(SCHEMA_PREFIX, dvbi.e_ProviderOffering, ++p), SLEPR_SCHEMA)) {
 				var serv, s=0;
-				while (serv=prov.get(xPath(SCHEMA_PREFIX, 'ServiceListOffering', ++s), SLEPR_SCHEMA)) {
+				while (serv=prov.get(xPath(SCHEMA_PREFIX, dvbi.e_ServiceListOffering, ++s), SLEPR_SCHEMA)) {
 					var removeService=false;
 				
 					// remove services that do not match the specified regulator list flag
 					if (req.query.regulatorListFlag) {
 						// The regulatorListFlag has been specified in the query, so it has to match. Default in instance document is "false"
-						var flag=serv.attr("regulatorListFlag")?serv.attr("regulatorListFlag").value():"false"
+						var flag=serv.attr(dvbi.a_regulatorListFlag)?serv.attr(dvbi.a_regulatorListFlag).value():"false"
 						if (req.query.regulatorListFlag != flag ) 
 							removeService=true;
 					}
@@ -132,7 +133,7 @@ app.get('/query', function(req,res){
 					// remove remaining services that do not match the specified language
 					if (!removeService && req.query.Language) {
 						var lang, l=0, keepService=false, hasLanguage=false;
-						while (!keepService && (lang=serv.get(xPath(SCHEMA_PREFIX, 'Language', ++l), SLEPR_SCHEMA))) {
+						while (!keepService && (lang=serv.get(xPath(SCHEMA_PREFIX, dvbi.e_Language, ++l), SLEPR_SCHEMA))) {
 							if (isIn(req.query.Language, lang.text())) keepService=true;
 							hasLanguage=true;
 						}
@@ -142,7 +143,7 @@ app.get('/query', function(req,res){
 					// remove remaining services that do not match the specified target country
 					if (!removeService && req.query.TargetCountry) {
 						var country, c=0, keepService=false, hasCountry=false;
-						while (!keepService && (country=serv.get(xPath(SCHEMA_PREFIX, 'TargetCountry', ++c), SLEPR_SCHEMA))) {	
+						while (!keepService && (country=serv.get(xPath(SCHEMA_PREFIX, dvbi.e_TargetCountry, ++c), SLEPR_SCHEMA))) {	
 							// note that the <TargetCountry> element can signal multiple values. Its XML pattern is "\c\c\c(,\c\c\c)*"
 							var countries=country.text().split(",");
 							countries.forEach(country => {
@@ -157,7 +158,7 @@ app.get('/query', function(req,res){
 					// remove remaining services that do not match the specified genre
 					if (!removeService && req.query.Genre) {
 						var genre, g=0, keepService=false, hasGenre=false;	
-						while (!keepService && (genre=serv.get(xPath(SCHEMA_PREFIX, 'Genre', ++g), SLEPR_SCHEMA))) {			
+						while (!keepService && (genre=serv.get(xPath(SCHEMA_PREFIX, dvbi.e_Genre, ++g), SLEPR_SCHEMA))) {			
 							if (isIn(req.query.Genre, genre.text())) keepService=true;
 							hasGenre=true;
 						}
@@ -172,8 +173,8 @@ app.get('/query', function(req,res){
 			
 		// remove any <ProviderOffering> elements that no longer have any <ServiceListOffering>
 		var prov, p=0, providersToRemove=[];
-		while (prov=slepr.get('//'+xPath(SCHEMA_PREFIX, 'ProviderOffering', ++p), SLEPR_SCHEMA)) {
-			if (!prov.get(xPath(SCHEMA_PREFIX, 'ServiceListOffering', 1), SLEPR_SCHEMA)) 
+		while (prov=slepr.get('//'+xPath(SCHEMA_PREFIX, dvbi.e_ProviderOffering, ++p), SLEPR_SCHEMA)) {
+			if (!prov.get(xPath(SCHEMA_PREFIX, dvbi.e_ServiceListOffering, 1), SLEPR_SCHEMA)) 
 				providersToRemove.push(prov);
 		}
 		providersToRemove.forEach(provider => provider.remove());
