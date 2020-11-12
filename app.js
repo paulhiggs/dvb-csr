@@ -35,13 +35,13 @@ const optionDefinitions=[
 ]
 
 const ISO3166_FILE=path.join('dvb-common','iso3166-countries.json');
-var knownCountries = new ISOcountries(false, true);
+var knownCountries=new ISOcountries(false, true);
 
-const IANAlanguages = require('./dvb-common/IANAlanguages.js');
+const IANAlanguages=require('./dvb-common/IANAlanguages.js');
 
 // curl from https://www.iana.org/assignments/language-subtag-registry/language-subtag-registry
 const IANA_Subtag_Registry_Filename=path.join('./dvb-common','language-subtag-registry');
-var knownLanguages = new IANAlanguages();
+var knownLanguages=new IANAlanguages();
 
 
 morgan.token('protocol', function getProtocol(req) {
@@ -91,9 +91,8 @@ function xPath(SCHEMA_PREFIX, elementName, index=null) {
 
 
 app.get('/query', function(req,res){
-	if (!checkQuery(req)) {
+	if (!checkQuery(req))
 		res.status(400);
-	}
 	else {
 		var slepr=libxml.parseXmlString(masterSLEPR);
 
@@ -126,7 +125,7 @@ app.get('/query', function(req,res){
 					if (req.query.regulatorListFlag) {
 						// The regulatorListFlag has been specified in the query, so it has to match. Default in instance document is "false"
 						var flag=serv.attr(dvbi.a_regulatorListFlag)?serv.attr(dvbi.a_regulatorListFlag).value():"false"
-						if (req.query.regulatorListFlag != flag ) 
+						if (req.query.regulatorListFlag!=flag ) 
 							removeService=true;
 					}
 
