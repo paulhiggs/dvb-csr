@@ -69,11 +69,9 @@ function isIn(args, value){
 	if (typeof(args)=="string")
 		return args==value;
 	
-	if (typeof(args)=="object") {
-		for (var x=0; x<args.length; x++) 
-			if (args[x]==value)
-				return true;
-	}
+	if (typeof(args)=="object") 
+		return args.includes(value)
+	
 	return false;
 }
 
