@@ -139,14 +139,13 @@ app.get('/query', function(req,res){
 					
 					// remove remaining services that do not match the specified target country
 					if (!removeService && req.query.TargetCountry) {
-						var country, c=0, keepService=false, hasCountry=false;
-						while (!keepService && (country=serv.get(xPath(SCHEMA_PREFIX, dvbi.e_TargetCountry, ++c), SLEPR_SCHEMA))) {	
+						var targetCountry, c=0, keepService=false, hasCountry=false;
+						while (!keepService && (targetCountry=serv.get(xPath(SCHEMA_PREFIX, dvbi.e_TargetCountry, ++c), SLEPR_SCHEMA))) {	
 							// note that the <TargetCountry> element can signal multiple values. Its XML pattern is "\c\c\c(,\c\c\c)*"
-							var countries=country.text().split(",");
+							var countries=targetCountry.text().split(",");
 							countries.forEach(country => {
 								if (isIn(req.query.TargetCountry, country)) keepService=true;
 							})
-							//if (isIn(req.query.TargetCountry, country.text())) keepService=true;
 							hasCountry=true;
 						}
 						if (hasCountry && !keepService) removeService=true;
