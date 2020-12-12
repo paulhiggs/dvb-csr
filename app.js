@@ -30,17 +30,24 @@ const allowed_arguments=[dvbi.e_ProviderName, dvbi.a_regulatorListFlag, dvbi.e_L
 // command line options
 const DEFAULT_HTTP_SERVICE_PORT=3000;
 const optionDefinitions=[
+  { name: 'urls', alias: 'u', type: Boolean, defaultValue: false},
   { name: 'port', alias: 'p', type: Number, defaultValue:DEFAULT_HTTP_SERVICE_PORT },
   { name: 'sport', alias: 's', type: Number, defaultValue:DEFAULT_HTTP_SERVICE_PORT+1 }
 ]
 
-const ISO3166_FILE=path.join('dvb-common','iso3166-countries.json');
+const DVB_COMMON_DIR='dvb-common',
+      COMMON_REPO_RAW="https://raw.githubusercontent.com/paulhiggs/dvb-common/master/"
+	  
+const ISO3166_FILE=path.join('dvb-common','iso3166-countries.json'),
+      ISO3166_URL=COMMON_REPO_RAW + "iso3166-countries.json"
+	  
 var knownCountries=new ISOcountries(false, true);
 
 const IANAlanguages=require('./dvb-common/IANAlanguages.js');
 
 // curl from https://www.iana.org/assignments/language-subtag-registry/language-subtag-registry
-const IANA_Subtag_Registry_Filename=path.join('./dvb-common','language-subtag-registry');
+const IANA_Subtag_Registry_Filename=path.join('./dvb-common','language-subtag-registry'),
+      IANA_Subtag_Registry_URL="https://www.iana.org/assignments/language-subtag-registry/language-subtag-registry"
 var knownLanguages=new IANAlanguages();
 
 
@@ -329,11 +336,22 @@ app.get('*', function(req,res) {
 });
 
 
+function loadDataFiles(useURLs) {
+	if (useURLs) 
+		knownCountries.loadCountriesFromURL(ISO3166_URL, true)
+	else knownCountries.loadCountriesFromFile(ISO3166_FILE, true)
+
+	if (useURLs) 
+		knownLanguages.loadLanguagesFromURL(IANA_Subtag_Registry_URL, true)
+	else knownLanguages.loadLanguagesFromFile(IANA_Subtag_Registry_Filename, true)
+}
+
 const options=commandLineArgs(optionDefinitions);
 
+
+loadDataFiles(options.urls)
 loadServiceListRegistry(MASTER_SLEPR_FILE);
-knownCountries.loadCountriesFromFile(ISO3166_FILE, true);
-knownLanguages.loadLanguagesFromFile(IANA_Subtag_Registry_Filename, true);
+
 
 // start the HTTP server
 var http_server=app.listen(options.port, function() {

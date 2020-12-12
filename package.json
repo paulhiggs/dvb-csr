@@ -5,9 +5,10 @@
 	"private": true,
 	"dependencies": {
 		"express": "4.x",
+		"node-fetch": "^2.6.1",
 		"libxmljs": "^0.19.7",
 		"morgan": "^1.9.1",
 		"xmlhttprequest": "1.8.0",
-		"command-line-args": ""
+		"command-line-args": "^5.1.0"
 	}
 }
