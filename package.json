@@ -6,7 +6,7 @@
 	"dependencies": {
 		"express": "4.x",
 		"node-fetch": "^2.6.1",
-		"libxmljs": "^0.19.7",
+		"libxmljs2": "^0.26.5",
 		"morgan": "^1.9.1",
 		"command-line-args": "^5.1.0"
 	}

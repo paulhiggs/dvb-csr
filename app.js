@@ -6,8 +6,8 @@ var app=express();
 const ISOcountries=require("./dvb-common/ISOcountries.js");
 const dvbi=require("./dvb-common/DVB-I_definitions.js")
 
-// libxmljs - https://github.com/libxmljs/libxmljs
-const libxml=require('libxmljs');
+// libxmljs - https://github.com/marudor/libxmljs2
+const libxml=require('libxmljs2');
 
 // morgan - https://github.com/expressjs/morgan
 const morgan=require('morgan')
