@@ -99,16 +99,16 @@ app.get('/query', function(req,res){
 	if (!checkQuery(req))
 		res.status(400);
 	else {
-		var slepr=libxml.parseXmlString(masterSLEPR);
+		let slepr=libxml.parseXmlString(masterSLEPR)
 
-		var SLEPR_SCHEMA={}, SCHEMA_PREFIX=slepr.root().namespace().prefix();
+		let SLEPR_SCHEMA={}, SCHEMA_PREFIX=slepr.root().namespace().prefix()
 		SLEPR_SCHEMA[SCHEMA_PREFIX]=slepr.root().namespace().href();
 			
 		if (req.query.ProviderName) {
 			// if ProviderName is specified, remove any ProviderOffering entries that do not match the name
-			var prov, p=0, providerCleanup=[];
+			let prov, p=0, providerCleanup=[]
 			while (prov=slepr.get('//'+xPath(SCHEMA_PREFIX, dvbi.e_ProviderOffering, ++p), SLEPR_SCHEMA)) {
-				var provName, n=0, matchedProvider=false;
+				let provName, n=0, matchedProvider=false
 				while ((provName=prov.get(xPath(SCHEMA_PREFIX, dvbi.e_Provider)+'/'+xPath(SCHEMA_PREFIX, dvbi.e_Name, ++n), SLEPR_SCHEMA)) && !matchedProvider) {
 					if (isIn(req.query.ProviderName, provName.text())) 
 						matchedProvider=true;					
@@ -120,23 +120,23 @@ app.get('/query', function(req,res){
 		}
 
 		if (req.query.regulatorListFlag || req.query.Language || req.query.TargetCountry || req.query.Genre) {
-			var prov, p=0, servicesToRemove=[];
+			let prov, p=0, servicesToRemove=[]
 			while (prov=slepr.get('//'+xPath(SCHEMA_PREFIX, dvbi.e_ProviderOffering, ++p), SLEPR_SCHEMA)) {
-				var serv, s=0;
+				let serv, s=0
 				while (serv=prov.get(xPath(SCHEMA_PREFIX, dvbi.e_ServiceListOffering, ++s), SLEPR_SCHEMA)) {
-					var removeService=false;
+					let removeService=false
 				
 					// remove services that do not match the specified regulator list flag
 					if (req.query.regulatorListFlag) {
 						// The regulatorListFlag has been specified in the query, so it has to match. Default in instance document is "false"
-						var flag=serv.attr(dvbi.a_regulatorListFlag)?serv.attr(dvbi.a_regulatorListFlag).value():"false"
+						let flag=serv.attr(dvbi.a_regulatorListFlag)?serv.attr(dvbi.a_regulatorListFlag).value():"false"
 						if (req.query.regulatorListFlag!=flag ) 
 							removeService=true;
 					}
 
 					// remove remaining services that do not match the specified language
 					if (!removeService && req.query.Language) {
-						var lang, l=0, keepService=false, hasLanguage=false;
+						let lang, l=0, keepService=false, hasLanguage=false
 						while (!keepService && (lang=serv.get(xPath(SCHEMA_PREFIX, dvbi.e_Language, ++l), SLEPR_SCHEMA))) {
 							if (isIn(req.query.Language, lang.text())) keepService=true;
 							hasLanguage=true;
@@ -146,10 +146,10 @@ app.get('/query', function(req,res){
 					
 					// remove remaining services that do not match the specified target country
 					if (!removeService && req.query.TargetCountry) {
-						var targetCountry, c=0, keepService=false, hasCountry=false;
+						let targetCountry, c=0, keepService=false, hasCountry=false
 						while (!keepService && (targetCountry=serv.get(xPath(SCHEMA_PREFIX, dvbi.e_TargetCountry, ++c), SLEPR_SCHEMA))) {	
 							// note that the <TargetCountry> element can signal multiple values. Its XML pattern is "\c\c\c(,\c\c\c)*"
-							var countries=targetCountry.text().split(",");
+							let countries=targetCountry.text().split(",")
 							countries.forEach(country => {
 								if (isIn(req.query.TargetCountry, country)) keepService=true;
 							})
@@ -160,7 +160,7 @@ app.get('/query', function(req,res){
 
 					// remove remaining services that do not match the specified genre
 					if (!removeService && req.query.Genre) {
-						var genre, g=0, keepService=false, hasGenre=false;	
+						let genre, g=0, keepService=false, hasGenre=false
 						while (!keepService && (genre=serv.get(xPath(SCHEMA_PREFIX, dvbi.e_Genre, ++g), SLEPR_SCHEMA))) {			
 							if (isIn(req.query.Genre, genre.text())) keepService=true;
 							hasGenre=true;
@@ -175,7 +175,7 @@ app.get('/query', function(req,res){
 		}
 			
 		// remove any <ProviderOffering> elements that no longer have any <ServiceListOffering>
-		var prov, p=0, providersToRemove=[];
+		let prov, p=0, providersToRemove=[]
 		while (prov=slepr.get('//'+xPath(SCHEMA_PREFIX, dvbi.e_ProviderOffering, ++p), SLEPR_SCHEMA)) {
 			if (!prov.get(xPath(SCHEMA_PREFIX, dvbi.e_ServiceListOffering, 1), SLEPR_SCHEMA)) 
 				providersToRemove.push(prov);
@@ -191,8 +191,8 @@ app.get('/query', function(req,res){
 
 function isTVAAudioLanguageType(languageCode) {
 	// any language specified should be an XML language
-	var languageRegex=/[a-zA-Z]{1,8}(-[a-zA-Z0-9]{1,8})*/g;
-	var s=languageCode.match(languageRegex);
+	const languageRegex=/[a-zA-Z]{1,8}(-[a-zA-Z0-9]{1,8})*/g;
+	let s=languageCode.match(languageRegex);
 	return s?s[0]===languageCode:false;
 }
 
@@ -240,7 +240,7 @@ function checkQuery(req) {
 				}					
 			}	
 			else if (typeof(req.query.TargetCountry)=="object") {
-				for (var i=0; i<req.query.TargetCountry.length; i++ ) {
+				for (let i=0; i<req.query.TargetCountry.length; i++ ) {
 					if (!knownCountries.isISO3166code(req.query.TargetCountry[i])) {
 						req.parseErr="incorrect country ["+req.query.TargetCountry[i]+"]";
 						return false;
@@ -258,7 +258,7 @@ function checkQuery(req) {
 				}					
 			}	
 			else if (typeof(req.query.Language)=="object") {
-				for (var i=0; i<req.query.Language.length; i++ ) {
+				for (let i=0; i<req.query.Language.length; i++ ) {
 					if (!isTVAAudioLanguageType(req.query.Language[i])) {
 						req.parseErr="incorrect language ["+req.query.Language[i]+"]";
 						return false;
@@ -275,7 +275,7 @@ function checkQuery(req) {
 				}					
 			}	
 			else if (typeof(req.query.Genre)=="object") {
-				for (var i=0; i<req.query.Genre.length; i++ ) {
+				for (let i=0; i<req.query.Genre.length; i++ ) {
 					if (!isGenre(req.query.Genre[i])) {
 						return false;
 					}
@@ -290,7 +290,7 @@ function checkQuery(req) {
 				}					
 			}	
 			else if (typeof(req.query.ProviderName)=="object") {
-				for (var i=0; i<req.query.ProviderName.length; i++ ) {
+				for (let i=0; i<req.query.ProviderName.length; i++ ) {
 					if (!isProvider(req.query.ProviderName[i])) {
 						return false;
 					}
@@ -364,7 +364,7 @@ var http_server=app.listen(options.port, function() {
 
 function readmyfile(filename) {
 	try {
-		var stats=fs.statSync(filename);
+		let stats=fs.statSync(filename);
 		if (stats.isFile()) return fs.readFileSync(filename); 
 	}
 	catch (err) {console.log(err.code,err.path);}
@@ -377,6 +377,9 @@ var https_options = {
 };
 
 if (https_options.key && https_options.cert) {
+	if (options.sport==options.port)
+		options.sport=options.port+1
+		
 	var https_server=https.createServer(https_options, app);
 	https_server.listen(options.sport, function(){
 		console.log("HTTPS listening on port number", https_server.address().port);
