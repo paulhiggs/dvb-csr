@@ -35,6 +35,7 @@ const optionDefinitions=[
   { name: 'sport', alias: 's', type: Number, defaultValue:DEFAULT_HTTP_SERVICE_PORT+1 }
 ]
 
+
 const DVB_COMMON_DIR='dvb-common',
       COMMON_REPO_RAW="https://raw.githubusercontent.com/paulhiggs/dvb-common/master/"
 	  
@@ -50,6 +51,11 @@ const IANA_Subtag_Registry_Filename=path.join('./dvb-common','language-subtag-re
       IANA_Subtag_Registry_URL="https://www.iana.org/assignments/language-subtag-registry/language-subtag-registry"
 var knownLanguages=new IANAlanguages();
 
+
+var metrics={
+	numRequests:0,
+	numFailed:0
+}
 
 morgan.token('protocol', function getProtocol(req) {
 	return req.protocol;
@@ -96,8 +102,11 @@ function xPath(SCHEMA_PREFIX, elementName, index=null) {
 
 
 app.get('/query', function(req,res){
-	if (!checkQuery(req))
+	metrics.numRequests++
+	if (!checkQuery(req)) {
 		res.status(400);
+		metrics.numFailed++
+	}
 	else {
 		let slepr=libxml.parseXmlString(masterSLEPR)
 
@@ -328,6 +337,7 @@ app.get('/reload', function(req,res) {
 app.get('/stats', function(req,res) {
 	console.log("knownLanguages.length=", knownLanguages.languagesList.length);
 	console.log("knownCountries.length=", knownCountries.count());
+	console.log("requests=", metrics.numRequests, " failed=", metrics.numFailed)
 	res.status(200).end();
 });
 
