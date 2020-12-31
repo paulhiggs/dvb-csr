@@ -256,6 +256,10 @@ function checkQuery(req) {
 					}
 				}
 			}
+			else {
+				req.parseErr="invalid type ["+typeof(req.query.Language)+"] for country"
+				return false
+			}			
 		}
 
 		//Language(s)
@@ -274,21 +278,31 @@ function checkQuery(req) {
 					}
 				}
 			}
+			else {
+				req.parseErr="invalid type ["+typeof(req.query.Language)+"] for language"
+				return false
+			}
 		}
 /* value space of these arguments is not checked
 		// Genre(s)
 		if (req.query.Genre) {
 			if (typeof(req.query.Genre)=="string"){
 				if (!isGenre(req.query.Genre)) {
+					req.parseErr="invalid genre ["+req.query.Genre+"]"
 					return false;
 				}					
 			}	
 			else if (typeof(req.query.Genre)=="object") {
 				for (let i=0; i<req.query.Genre.length; i++ ) {
 					if (!isGenre(req.query.Genre[i])) {
+						req.parseErr="invalid genre ["+req.query.Genre[i]+"]"
 						return false;
 					}
 				}
+			}
+			else {
+				req.parseErr="invalid type ["+typeof(req.query.Language)+"] for genre"
+				return false
 			}
 		}		
 		//Provider Name(s)
