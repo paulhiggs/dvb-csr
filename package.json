@@ -7,7 +7,7 @@
 		"express": "4.x",
 		"node-fetch": "^2.6.1",
 		"libxmljs2": "^0.26.5",
-		"morgan": "^1.9.1",
-		"command-line-args": "^5.1.0"
+		"morgan": "^1.10.0",
+		"command-line-args": "^5.1.1"
 	}
 }

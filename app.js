@@ -6,23 +6,28 @@ var app=express();
 const ISOcountries=require("./dvb-common/ISOcountries.js");
 const dvbi=require("./dvb-common/DVB-I_definitions.js")
 
-// libxmljs - https://github.com/marudor/libxmljs2
+// libxmljs - https://www.npmjs.com/package/libxmljs2
 const libxml=require('libxmljs2');
 
-// morgan - https://github.com/expressjs/morgan
+// morgan - https://www.npmjs.com/package/morgan
 const morgan=require('morgan')
 
 const fs=require('fs'), path=require('path');
 
-// command line arguments - https://github.com/75lb/command-line-args
+// command line arguments - https://www.npmjs.com/package/command-line-args
 const commandLineArgs=require('command-line-args');
+
+// Fetch() API for node.js- https://www.npmjs.com/package/node-fetch
+const fetch=require('node-fetch')
 
 const https=require('https');
 const keyFilename=path.join('.','selfsigned.key'), certFilename=path.join('.','selfsigned.crt');
 
 // SLEPR == Service List Entry Point Registry
-const MASTER_SLEPR_FILE=path.join('.','slepr-master.xml');
+const MASTER_SLEPR_FILE=path.join('.','slepr-master.xml'),
+      MASTER_SLEPR_URL="https://raw.githubusercontent.com/paulhiggs/dvb-csr/master/slepr-master.xml"
 var masterSLEPR="";
+const EMPTY_SLEPR="<ServiceListEntryPoints xmlns=\"urn:dvb:metadata:servicelistdiscovery:2019\"></ServiceListEntryPoints>"
 
 // permitted query parameters
 const allowed_arguments=[dvbi.e_ProviderName, dvbi.a_regulatorListFlag, dvbi.e_Language, dvbi.e_TargetCountry, dvbi.e_Genre];
@@ -32,7 +37,8 @@ const DEFAULT_HTTP_SERVICE_PORT=3000;
 const optionDefinitions=[
   { name: 'urls', alias: 'u', type: Boolean, defaultValue: false},
   { name: 'port', alias: 'p', type: Number, defaultValue:DEFAULT_HTTP_SERVICE_PORT },
-  { name: 'sport', alias: 's', type: Number, defaultValue:DEFAULT_HTTP_SERVICE_PORT+1 }
+  { name: 'sport', alias: 's', type: Number, defaultValue:DEFAULT_HTTP_SERVICE_PORT+1 },
+  { name: 'file', alias: 'f', type: String, defaultValue:MASTER_SLEPR_FILE}
 ]
 
 
@@ -40,7 +46,7 @@ const DVB_COMMON_DIR='dvb-common',
       COMMON_REPO_RAW="https://raw.githubusercontent.com/paulhiggs/dvb-common/master/"
 	  
 const ISO3166_FILE=path.join('dvb-common','iso3166-countries.json'),
-      ISO3166_URL=COMMON_REPO_RAW + "iso3166-countries.json"
+      ISO3166_URL=COMMON_REPO_RAW+"iso3166-countries.json"
 	  
 var knownCountries=new ISOcountries(false, true);
 
@@ -326,13 +332,47 @@ function checkQuery(req) {
 }
 
 
+
+/**
+ * checks of the specified argument matches an HTTP(s) URL where the protocol is required to be provided
+ *
+ * @param {string} arg  The value whose format is to be checked
+ * @returns {boolean} true if the argument is an HTTP URL
+ */
+function isHTTPURL(arg) {
+	let pattern = new RegExp('^(https?:\\/\\/)'+ // protocol
+		'((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.)+[a-z]{2,}|'+ // domain name
+		'((\\d{1,3}\\.){3}\\d{1,3}))'+ // OR ip (v4) address
+		'(\\:\\d+)?(\\/[-a-z\\d%_.~+]*)*'+ // port and path
+		'(\\?[;&a-z\\d%_.~+=-]*)?'+ // query string
+		'(\\#[-a-z\\d_]*)?$','i') // fragment locator
+	return !!pattern.test(arg)
+}
+
+
 /**
  * read in the master XML document as text
  *
  * @param {string} filename   filename of the master XML document
  */
 function loadServiceListRegistry(filename) {
-	fs.readFile(filename, {encoding: 'utf-8'}, function(err,data){
+
+	if (isHTTPURL(filename)) {
+
+		function handleErrors(response) {
+			if (!response.ok) {
+				throw Error(response.statusText)
+			}
+			return response
+		}
+
+		fetch(filename)
+			.then(handleErrors)
+			.then(response => response.text())
+			.then(responseText => masterSLEPR=responseText.replace(/(\r\n|\n|\r|\t)/gm,""))
+			.catch(error => {console.log("error ("+error+") retrieving "+filename); masterSLEPR=EMPTY_SLEPR})
+	}
+	else fs.readFile(filename, {encoding: 'utf-8'}, function(err,data){
 		if (!err) {
 			masterSLEPR=data.replace(/(\r\n|\n|\r|\t)/gm,"");
 		} else {
@@ -342,7 +382,7 @@ function loadServiceListRegistry(filename) {
 }
 
 app.get('/reload', function(req,res) {
-	loadServiceListRegistry(MASTER_SLEPR_FILE);
+	loadServiceListRegistry(options.file)
 	knownCountries.loadCountriesFromFile(ISO3166_FILE, true);
 	res.status(200).end();
 });
@@ -352,6 +392,7 @@ app.get('/stats', function(req,res) {
 	console.log("knownLanguages.length=", knownLanguages.languagesList.length);
 	console.log("knownCountries.length=", knownCountries.count());
 	console.log("requests=", metrics.numRequests, " failed=", metrics.numFailed)
+	console.log("SLEPR file=", options.file)
 	res.status(200).end();
 });
 
@@ -374,7 +415,7 @@ const options=commandLineArgs(optionDefinitions);
 
 
 loadDataFiles(options.urls)
-loadServiceListRegistry(MASTER_SLEPR_FILE);
+loadServiceListRegistry(options.file)
 
 
 // start the HTTP server
