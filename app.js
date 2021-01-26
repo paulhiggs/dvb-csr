@@ -41,6 +41,7 @@ const optionDefinitions=[
   { name: 'file', alias: 'f', type: String, defaultValue:MASTER_SLEPR_FILE}
 ]
 
+const patterns=require("./dvb-common/pattern_checks.js")
 
 const DVB_COMMON_DIR='dvb-common',
       COMMON_REPO_RAW="https://raw.githubusercontent.com/paulhiggs/dvb-common/master/"
@@ -51,12 +52,10 @@ const ISO3166_FILE=path.join('dvb-common','iso3166-countries.json'),
 var knownCountries=new ISOcountries(false, true);
 
 const IANAlanguages=require('./dvb-common/IANAlanguages.js');
-
-// curl from https://www.iana.org/assignments/language-subtag-registry/language-subtag-registry
-const IANA_Subtag_Registry_Filename=path.join('./dvb-common','language-subtag-registry'),
-      IANA_Subtag_Registry_URL="https://www.iana.org/assignments/language-subtag-registry/language-subtag-registry"
 var knownLanguages=new IANAlanguages();
 
+const IANA_Subtag_Registry_Filename=path.join(DVB_COMMON_DIR, knownLanguages.LanguagesFileName),
+      IANA_Subtag_Registry_URL=knownLanguages.LanguagesURL
 
 var metrics={
 	numRequests:0,
@@ -204,14 +203,6 @@ app.get('/query', function(req,res){
 });
 
 
-function isTVAAudioLanguageType(languageCode) {
-	// any language specified should be an XML language
-	const languageRegex=/[a-zA-Z]{1,8}(-[a-zA-Z0-9]{1,8})*/g;
-	let s=languageCode.match(languageRegex);
-	return s?s[0]===languageCode:false;
-}
-
-
 function checkQuery(req) {
 	
 /*	function isGenre(genre) {
@@ -271,14 +262,14 @@ function checkQuery(req) {
 		//Language(s)
 		if (req.query.Language) {
 			if (typeof(req.query.Language)=="string") {
-				if (!isTVAAudioLanguageType(req.query.Language)) {
+				if (!patterns.isTVAAudioLanguageType(req.query.Language)) {
 					req.parseErr="incorrect language ["+req.query.Language+"]";
 					return false;
 				}					
 			}	
 			else if (typeof(req.query.Language)=="object") {
 				for (let i=0; i<req.query.Language.length; i++ ) {
-					if (!isTVAAudioLanguageType(req.query.Language[i])) {
+					if (!patterns.isTVAAudioLanguageType(req.query.Language[i])) {
 						req.parseErr="incorrect language ["+req.query.Language[i]+"]";
 						return false;
 					}
@@ -332,24 +323,6 @@ function checkQuery(req) {
 }
 
 
-
-/**
- * checks of the specified argument matches an HTTP(s) URL where the protocol is required to be provided
- *
- * @param {string} arg  The value whose format is to be checked
- * @returns {boolean} true if the argument is an HTTP URL
- */
-function isHTTPURL(arg) {
-	let pattern = new RegExp('^(https?:\\/\\/)'+ // protocol
-		'((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.)+[a-z]{2,}|'+ // domain name
-		'((\\d{1,3}\\.){3}\\d{1,3}))'+ // OR ip (v4) address
-		'(\\:\\d+)?(\\/[-a-z\\d%_.~+]*)*'+ // port and path
-		'(\\?[;&a-z\\d%_.~+=-]*)?'+ // query string
-		'(\\#[-a-z\\d_]*)?$','i') // fragment locator
-	return !!pattern.test(arg)
-}
-
-
 /**
  * read in the master XML document as text
  *
@@ -357,7 +330,7 @@ function isHTTPURL(arg) {
  */
 function loadServiceListRegistry(filename) {
 
-	if (isHTTPURL(filename)) {
+	if (patterns.isHTTPURL(filename)) {
 
 		function handleErrors(response) {
 			if (!response.ok) {
