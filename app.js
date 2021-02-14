@@ -121,7 +121,7 @@ function checkQuery(req) {
 				req.parseErr="invalid type for regulatorListFlag ["+typeof(req.query.regulatorListFlag)+"]";
 				return false;
 			}
-			if (req.query.regulatorListFlag!="true" && req.query.regulatorListFlag!="false") {
+			if (req.query.regulatorListFlag.toLowerCase()!="true" && req.query.regulatorListFlag.toLowerCase()!="false") {
 				req.parseErr="invalid value for regulatorListFlag ["+req.query.regulatorListFlag+"]";
 				return false;				
 			}
