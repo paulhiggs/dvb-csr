@@ -66,15 +66,17 @@ const IANA_Subtag_Registry_Filename=path.join(DVB_COMMON_DIR, knownLanguages.Lan
  *
  * @param {String or Array} values The set of values to check existance in
  * @param {String} value The value to check for existance
+ * @param {Boolean} caseSensitive ignofe case
  * @return {boolean} if value is in the set of values
  */
-function isIn(args, value){
+function isIn(args, value, caseSensitive=true){
+	let value_lc=value.toLowerCase()
 	if (typeof(args)=="string")
-		return args==value;
+		return caseSensitive?(args==value):(args.toLowerCase()==value_lc)
 	
-	if (typeof(args)=="object") 
-		return args.includes(value)
-	
+	if (Array.isArray(args)) 
+		return caseSensitive?args.includes(value):args.find(element => element.toLowerCase()==value_lc)!=undefined
+
 	return false;
 }
 
@@ -89,9 +91,6 @@ function isIn(args, value){
 function xPath(SCHEMA_PREFIX, elementName, index=null) {
 	return SCHEMA_PREFIX+":"+elementName+(index?"["+index+"]":"")
 }
-
-
-
 
 
 function checkQuery(req) {
@@ -110,7 +109,7 @@ function checkQuery(req) {
 		
 		// check for any erronous arguments
 		for (key in req.query) {
-			if (!isIn(allowed_arguments, key)) {
+			if (!isIn(allowed_arguments, key, false)) {
 				req.parseErr="invalid argument ["+key+"]";
 				return false;
 			}
@@ -131,14 +130,14 @@ function checkQuery(req) {
 		//TargetCountry(s)
 		if (req.query.TargetCountry) {
 			if (typeof(req.query.TargetCountry)=="string") {
-				if (!knownCountries.isISO3166code(req.query.TargetCountry)) {
+				if (!knownCountries.isISO3166code(req.query.TargetCountry,false)) {
 					req.parseErr="incorrect country ["+req.query.TargetCountry+"]";
 					return false;
 				}					
 			}	
 			else if (typeof(req.query.TargetCountry)=="object") {
 				for (let i=0; i<req.query.TargetCountry.length; i++ ) {
-					if (!knownCountries.isISO3166code(req.query.TargetCountry[i])) {
+					if (!knownCountries.isISO3166code(req.query.TargetCountry[i], false)) {
 						req.parseErr="incorrect country ["+req.query.TargetCountry[i]+"]";
 						return false;
 					}
@@ -153,14 +152,14 @@ function checkQuery(req) {
 		//Language(s)
 		if (req.query.Language) {
 			if (typeof(req.query.Language)=="string") {
-				if (!patterns.isTVAAudioLanguageType(req.query.Language)) {
+				if (!patterns.isTVAAudioLanguageType(req.query.Language, false)) {
 					req.parseErr="incorrect language ["+req.query.Language+"]";
 					return false;
 				}					
 			}	
 			else if (typeof(req.query.Language)=="object") {
 				for (let i=0; i<req.query.Language.length; i++ ) {
-					if (!patterns.isTVAAudioLanguageType(req.query.Language[i])) {
+					if (!patterns.isTVAAudioLanguageType(req.query.Language[i], false)) {
 						req.parseErr="incorrect language ["+req.query.Language[i]+"]";
 						return false;
 					}
@@ -255,14 +254,6 @@ function loadDataFiles(useURLs) {
 	else knownLanguages.loadLanguagesFromFile(IANA_Subtag_Registry_Filename, true)
 }
 
-function pausecomp(millis)
-{
-    var date = new Date();
-    var curDate = null;
-    do { curDate = new Date(); }
-    while(curDate-date < millis);
-}
-
 const options=commandLineArgs(optionDefinitions);
 
 const RELOAD='RELOAD', UPDATE='UPDATE',
@@ -339,7 +330,7 @@ if (cluster.isMaster) {
 	
 	app.use(morgan(':pid :remote-addr :protocol :method :url :status :res[content-length] - :response-time ms :agent :parseErr'));
 	
-	app.get('/query', function(req,res){
+	app.get('/query', function(req,res) {
 		process.send({ topic: INCR_REQUESTS })
 		if (!checkQuery(req)) {
 			res.status(400);
