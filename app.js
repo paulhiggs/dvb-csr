@@ -117,7 +117,7 @@ function checkQuery(req) {
 		
 		//regulatorListFlag needs to be a boolean, "true" or "false" only
 		if (req.query.regulatorListFlag) {
-			if (typeof(req.query.regulatorListFlag)!="string") {
+			if (!(typeof req.query.regulatorListFlag == "string" || req.query.regulatorListFlag instanceof String)) {
 				req.parseErr="invalid type for regulatorListFlag ["+typeof(req.query.regulatorListFlag)+"]";
 				return false;
 			}
@@ -129,13 +129,13 @@ function checkQuery(req) {
 		
 		//TargetCountry(s)
 		if (req.query.TargetCountry) {
-			if (typeof(req.query.TargetCountry)=="string") {
+			if (typeof req.query.TargetCountry == "string" || req.query.TargetCountry instanceof String) {
 				if (!knownCountries.isISO3166code(req.query.TargetCountry,false)) {
 					req.parseErr="incorrect country ["+req.query.TargetCountry+"]";
 					return false;
 				}					
 			}	
-			else if (typeof(req.query.TargetCountry)=="object") {
+			else if (Array.isArray(req.query.TargetCountry)) {
 				for (let i=0; i<req.query.TargetCountry.length; i++ ) {
 					if (!knownCountries.isISO3166code(req.query.TargetCountry[i], false)) {
 						req.parseErr="incorrect country ["+req.query.TargetCountry[i]+"]";
@@ -151,13 +151,13 @@ function checkQuery(req) {
 
 		//Language(s)
 		if (req.query.Language) {
-			if (typeof(req.query.Language)=="string") {
+			if (typeof req.query.Language =="string" || req.query.Language instanceof String) {
 				if (!patterns.isTVAAudioLanguageType(req.query.Language, false)) {
 					req.parseErr="incorrect language ["+req.query.Language+"]";
 					return false;
 				}					
 			}	
-			else if (typeof(req.query.Language)=="object") {
+			else if (Array.isArray(req.query.Language)) {
 				for (let i=0; i<req.query.Language.length; i++ ) {
 					if (!patterns.isTVAAudioLanguageType(req.query.Language[i], false)) {
 						req.parseErr="incorrect language ["+req.query.Language[i]+"]";
@@ -173,13 +173,13 @@ function checkQuery(req) {
 /* value space of these arguments is not checked
 		// Genre(s)
 		if (req.query.Genre) {
-			if (typeof(req.query.Genre)=="string"){
+			if (typeof req.query.Genre =="string" || req.query.Genre instanceof String){
 				if (!isGenre(req.query.Genre)) {
 					req.parseErr="invalid genre ["+req.query.Genre+"]"
 					return false;
 				}					
 			}	
-			else if (typeof(req.query.Genre)=="object") {
+			else if (Array.isArray(req.query.Genre)) {
 				for (let i=0; i<req.query.Genre.length; i++ ) {
 					if (!isGenre(req.query.Genre[i])) {
 						req.parseErr="invalid genre ["+req.query.Genre[i]+"]"
@@ -194,12 +194,12 @@ function checkQuery(req) {
 		}		
 		//Provider Name(s)
 		if (req.query.ProviderName) {
-			if (typeof(req.query.ProviderName)=="string"){
+			if (typeof req.query.ProviderName =="string" || req.query.ProviderName instanceof String){
 				if (!isProvider(req.query.ProviderName)) {
 					return false;
 				}					
 			}	
-			else if (typeof(req.query.ProviderName)=="object") {
+			else if (Array.isArray(req.query.ProviderName)) {
 				for (let i=0; i<req.query.ProviderName.length; i++ ) {
 					if (!isProvider(req.query.ProviderName[i])) {
 						return false;
