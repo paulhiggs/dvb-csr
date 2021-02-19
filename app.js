@@ -11,6 +11,9 @@ const libxml=require('libxmljs2');
 // morgan - https://www.npmjs.com/package/morgan
 const morgan=require('morgan')
 
+// favourite icon - https://www.npmjs.com/package/serve-favicon
+const favicon=require('serve-favicon')
+
 const fs=require('fs'), path=require('path');
 
 // command line arguments - https://www.npmjs.com/package/command-line-args
@@ -329,6 +332,8 @@ if (cluster.isMaster) {
 	});
 	
 	app.use(morgan(':pid :remote-addr :protocol :method :url :status :res[content-length] - :response-time ms :agent :parseErr'));
+	
+	app.use(favicon(path.join('phlib','ph-icon.ico')))
 	
 	app.get('/query', function(req,res) {
 		process.send({ topic: INCR_REQUESTS })

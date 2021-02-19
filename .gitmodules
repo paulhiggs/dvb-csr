@@ -1,3 +1,6 @@
 [submodule "dvb-common"]
 	path = dvb-common
 	url = https://github.com/paulhiggs/dvb-common
+[submodule "phlib"]
+	path = phlib
+	url = https://github.com/paulhiggs/phlib
