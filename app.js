@@ -92,7 +92,7 @@ function isIn(args, value, caseSensitive=true){
  * @returns {string} the XPath selector
  */
 function xPath(SCHEMA_PREFIX, elementName, index=null) {
-	return SCHEMA_PREFIX+":"+elementName+(index?"["+index+"]":"")
+	return `${SCHEMA_PREFIX}:${elementName}${index?"["+index+"]":""}`
 }
 
 
@@ -113,91 +113,91 @@ function checkQuery(req) {
 		// check for any erronous arguments
 		for (key in req.query) {
 			if (!isIn(allowed_arguments, key, false)) {
-				req.parseErr="invalid argument ["+key+"]";
+				req.parseErr=`invalid argument [${key}]`
 				return false;
 			}
 		}
 		
 		//regulatorListFlag needs to be a boolean, "true" or "false" only
 		if (req.query.regulatorListFlag) {
-			if (!(typeof req.query.regulatorListFlag == "string" || req.query.regulatorListFlag instanceof String)) {
-				req.parseErr="invalid type for regulatorListFlag ["+typeof(req.query.regulatorListFlag)+"]";
+			if (!(typeof req.query.regulatorListFlag=="string" || req.query.regulatorListFlag instanceof String)) {
+				req.parseErr=`invalid type for regulatorListFlag [${typeof(req.query.regulatorListFlag)}]`
 				return false;
 			}
-			if (req.query.regulatorListFlag.toLowerCase()!="true" && req.query.regulatorListFlag.toLowerCase()!="false") {
-				req.parseErr="invalid value for regulatorListFlag ["+req.query.regulatorListFlag+"]";
+			if (!["true","false"].includes(req.query.regulatorListFlag.toLowerCase())) {
+				req.parseErr=`invalid value for regulatorListFlag [${req.query.regulatorListFlag}]`
 				return false;				
 			}
 		}
 		
 		//TargetCountry(s)
 		if (req.query.TargetCountry) {
-			if (typeof req.query.TargetCountry == "string" || req.query.TargetCountry instanceof String) {
+			if (typeof req.query.TargetCountry=="string" || req.query.TargetCountry instanceof String) {
 				if (!knownCountries.isISO3166code(req.query.TargetCountry,false)) {
-					req.parseErr="incorrect country ["+req.query.TargetCountry+"]";
+					req.parseErr=`incorrect country [${req.query.TargetCountry}]`
 					return false;
 				}					
 			}	
 			else if (Array.isArray(req.query.TargetCountry)) {
 				for (let i=0; i<req.query.TargetCountry.length; i++ ) {
 					if (!knownCountries.isISO3166code(req.query.TargetCountry[i], false)) {
-						req.parseErr="incorrect country ["+req.query.TargetCountry[i]+"]";
+						req.parseErr=`incorrect country [${req.query.TargetCountry[i]}]`
 						return false;
 					}
 				}
 			}
 			else {
-				req.parseErr="invalid type ["+typeof(req.query.Language)+"] for country"
+				req.parseErr=`invalid type [${typeof(req.query.Language)}] for country`
 				return false
 			}			
 		}
 
 		//Language(s)
 		if (req.query.Language) {
-			if (typeof req.query.Language =="string" || req.query.Language instanceof String) {
+			if (typeof req.query.Language=="string" || req.query.Language instanceof String) {
 				if (!patterns.isTVAAudioLanguageType(req.query.Language, false)) {
-					req.parseErr="incorrect language ["+req.query.Language+"]";
+					req.parseErr=`incorrect language [${req.query.Language}]`
 					return false;
 				}					
 			}	
 			else if (Array.isArray(req.query.Language)) {
 				for (let i=0; i<req.query.Language.length; i++ ) {
 					if (!patterns.isTVAAudioLanguageType(req.query.Language[i], false)) {
-						req.parseErr="incorrect language ["+req.query.Language[i]+"]";
+						req.parseErr=`incorrect language [${req.query.Language[i]}]`
 						return false;
 					}
 				}
 			}
 			else {
-				req.parseErr="invalid type ["+typeof(req.query.Language)+"] for language"
+				req.parseErr=`invalid type [${typeof(req.query.Language)}] for language`
 				return false
 			}
 		}
 /* value space of these arguments is not checked
 		// Genre(s)
 		if (req.query.Genre) {
-			if (typeof req.query.Genre =="string" || req.query.Genre instanceof String){
+			if (typeof req.query.Genre=="string" || req.query.Genre instanceof String){
 				if (!isGenre(req.query.Genre)) {
-					req.parseErr="invalid genre ["+req.query.Genre+"]"
+					req.parseErr=`invalid genre [${req.query.Genre}]`
 					return false;
 				}					
 			}	
 			else if (Array.isArray(req.query.Genre)) {
 				for (let i=0; i<req.query.Genre.length; i++ ) {
 					if (!isGenre(req.query.Genre[i])) {
-						req.parseErr="invalid genre ["+req.query.Genre[i]+"]"
+						req.parseErr=`invalid genre [${req.query.Genre[i]}]`
 						return false;
 					}
 				}
 			}
 			else {
-				req.parseErr="invalid type ["+typeof(req.query.Language)+"] for genre"
+				req.parseErr=`invalid type [${typeof(req.query.Genre)}] for genre`
 				return false
 			}
 		}		
 		//Provider Name(s)
 		if (req.query.ProviderName) {
-			if (typeof req.query.ProviderName =="string" || req.query.ProviderName instanceof String){
+			if (typeof req.query.ProviderName=="string" || req.query.ProviderName instanceof String){
 				if (!isProvider(req.query.ProviderName)) {
 					return false;
 				}					
@@ -237,7 +237,7 @@ function loadServiceListRegistry(filename) {
 			.then(handleErrors)
 			.then(response => response.text())
 			.then(responseText => masterSLEPR=responseText.replace(/(\r\n|\n|\r|\t)/gm,""))
-			.catch(error => {console.log("error ("+error+") retrieving "+filename); masterSLEPR=EMPTY_SLEPR})
+			.catch(error => {console.log(`error (${error}) retrieving ${filename}`); masterSLEPR=EMPTY_SLEPR})
 	}
 	else fs.readFile(filename, {encoding: 'utf-8'}, function(err,data){
 		if (!err) {
@@ -305,10 +305,10 @@ if (cluster.isMaster) {
 					metrics.numFailed++
 					break
 				case STATS:
-					console.log("knownLanguages.length=", knownLanguages.languagesList.length);
-					console.log("knownCountries.length=", knownCountries.count());
-					console.log("requests=", metrics.numRequests, " failed=", metrics.numFailed, " reloads=", metrics.reloadRequests)
-					console.log("SLEPR file=", options.file)
+					console.log(`knownLanguages.length=${knownLanguages.languagesList.length}`)
+					console.log(`knownCountries.length=${knownCountries.count()}`)
+					console.log(`requests=${metrics.numRequests} failed=${metrics.numFailed} reloads=${metrics.reloadRequests}`)
+					console.log(`SLEPR file=${options.file}`)
 					break;
 			}
 	})
@@ -324,11 +324,11 @@ if (cluster.isMaster) {
 		return req.protocol;
 	});
 	morgan.token('parseErr',function getParseErr(req) {
-		if (req.parseErr) return "("+req.parseErr+")";
+		if (req.parseErr) return `(${req.parseErr})`
 		return "";
 	});
 	morgan.token('agent',function getAgent(req) {
-		return "("+req.headers['user-agent']+")";
+		return `(${req.headers['user-agent']})`
 	});
 	
 	app.use(morgan(':pid :remote-addr :protocol :method :url :status :res[content-length] - :response-time ms :agent :parseErr'));
