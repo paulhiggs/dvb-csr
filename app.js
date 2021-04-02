@@ -54,7 +54,7 @@ const DVB_COMMON_DIR='dvb-common',
       COMMON_REPO_RAW="https://raw.githubusercontent.com/paulhiggs/dvb-common/master/"
 	  
 const ISO3166_FILE=path.join('dvb-common','iso3166-countries.json'),
-      ISO3166_URL=COMMON_REPO_RAW+"iso3166-countries.json"
+      ISO3166_URL=`${COMMON_REPO_RAW}iso3166-countries.json`
 	  
 var knownCountries=new ISOcountries(false, true);
 
@@ -92,7 +92,7 @@ function isIn(args, value, caseSensitive=true){
  * @returns {string} the XPath selector
  */
 function xPath(SCHEMA_PREFIX, elementName, index=null) {
-	return `${SCHEMA_PREFIX}:${elementName}${index?"["+index+"]":""}`
+	return `${SCHEMA_PREFIX}:${elementName}${index?`[${index}]`:""}`
 }
 
 
