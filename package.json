@@ -7,7 +7,7 @@
 		"cluster": "^0.7.7",
 		"command-line-args": "^5.1.1",
 		"express": "4.x",
-		"libxmljs2": "^0.26.5",
+		"libxmljs2": "^0.26.7",
 		"morgan": "^1.10.0",
 		"node-fetch": "^2.6.1",
 		"serve-favicon": "^2.5.0"
