@@ -1,5 +1,5 @@
 {
-	"name": "DVB-SLR",
+	"name": "dvb-slr",
 	"description": "DVB Service List Registry (HTTP responder)",
 	"version": "0.0.4",
 	"private": true,
